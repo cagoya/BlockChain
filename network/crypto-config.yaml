@@ -1,0 +1,38 @@
+# 网络拓扑定义，方便 cryptogen 用来生成各个组织节点的证书和秘钥
+OrdererOrgs:
+  - Name: Orderer
+    Domain: togettoyou.com
+    EnableNodeOUs: true
+    CommonName: orderer
+    Specs:
+      - Hostname: orderer1
+        CommonName: "{{.Hostname}}.{{.Domain}}" # 域名规则 orderer1.togettoyou.com
+      - Hostname: orderer2
+        CommonName: "{{.Hostname}}.{{.Domain}}" # 域名规则 orderer2.togettoyou.com
+      - Hostname: orderer3
+        CommonName: "{{.Hostname}}.{{.Domain}}" # 域名规则 orderer3.togettoyou.com
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.togettoyou.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2 # 使用模板生成2个节点，域名分别为：peer0.org1.togettoyou.com 和 peer1.org1.togettoyou.com
+    Users: # 组织的用户信息。Count 指该组织中除了 Admin 之外的用户的个数
+      Count: 1 # 使用模板生成1个用户：User1
+
+  - Name: Org2
+    Domain: org2.togettoyou.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2
+    Users:
+      Count: 1
+
+  - Name: Org3
+    Domain: org3.togettoyou.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2
+    Users:
+      Count: 1

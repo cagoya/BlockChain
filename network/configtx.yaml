@@ -1,0 +1,196 @@
+Organizations:
+  - &Orderer # 排序节点
+    Name: Orderer
+    ID: OrdererMSP
+    MSPDir: crypto-config/ordererOrganizations/togettoyou.com/msp # msp 证书路径
+    Policies: # 2.x 版本必须定义策略
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer1.togettoyou.com:7050
+      - orderer2.togettoyou.com:7050
+      - orderer3.togettoyou.com:7050
+
+  - &Org1 # 组织1
+    Name: Org1
+    ID: Org1MSP
+    MSPDir: crypto-config/peerOrganizations/org1.togettoyou.com/msp
+    AnchorPeers: # 锚节点
+      - Host: peer0.org1.togettoyou.com
+        Port: 7051
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org1MSP.admin', 'Org1MSP.peer', 'Org1MSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org1MSP.admin', 'Org1MSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org1MSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org1MSP.peer')"
+
+  - &Org2 # 组织2
+    Name: Org2
+    ID: Org2MSP
+    MSPDir: crypto-config/peerOrganizations/org2.togettoyou.com/msp
+    AnchorPeers:
+      - Host: peer0.org2.togettoyou.com
+        Port: 7051
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org2MSP.admin', 'Org2MSP.peer', 'Org2MSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org2MSP.admin', 'Org2MSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org2MSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org2MSP.peer')"
+
+  - &Org3 # 组织3
+    Name: Org3
+    ID: Org3MSP
+    MSPDir: crypto-config/peerOrganizations/org3.togettoyou.com/msp
+    AnchorPeers:
+      - Host: peer0.org3.togettoyou.com
+        Port: 7051
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('Org3MSP.admin', 'Org3MSP.peer', 'Org3MSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('Org3MSP.admin', 'Org3MSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('Org3MSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('Org3MSP.peer')"
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  Addresses:
+    - orderer1.togettoyou.com:7050
+    - orderer2.togettoyou.com:7050
+    - orderer3.togettoyou.com:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  EtcdRaft:
+    Consenters:
+      - Host: orderer1.togettoyou.com
+        Port: 7050
+        ClientTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer1.togettoyou.com/tls/server.crt
+        ServerTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer1.togettoyou.com/tls/server.crt
+      - Host: orderer2.togettoyou.com
+        Port: 7050
+        ClientTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer2.togettoyou.com/tls/server.crt
+        ServerTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer2.togettoyou.com/tls/server.crt
+      - Host: orderer3.togettoyou.com
+        Port: 7050
+        ClientTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer3.togettoyou.com/tls/server.crt
+        ServerTLSCert: crypto-config/ordererOrganizations/togettoyou.com/orderers/orderer3.togettoyou.com/tls/server.crt
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+# 真正配置
+Profiles:
+  SampleGenesis:
+    <<: *ChannelDefaults
+    # Orderer节点配置
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *Orderer
+    Consortiums:
+      # 联盟配置，名称自定义，这里叫做 SampleConsortium
+      SampleConsortium:
+        # 联盟旗下组织
+        Organizations:
+          - *Org1
+          - *Org2
+          - *Org3
+  SampleChannel:
+    <<: *ChannelDefaults
+    # 所属联盟
+    Consortium: SampleConsortium
+    # 通道组织
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Org1
+        - *Org2
+        - *Org3
