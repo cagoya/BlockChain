@@ -42,19 +42,20 @@ type LatestBlock struct {
 
 // blockEventListener 区块事件监听器
 type blockEventListener struct {
-	sync.RWMutex
-	networks map[string]*client.Network
-	ctx      context.Context
-	cancel   context.CancelFunc
-	dataDir  string
-	db       *bolt.DB
+	sync.RWMutex // 读写锁，即允许多个goroutine同时读取，但写入时需要独占
+	networks     map[string]*client.Network
+	ctx          context.Context
+	cancel       context.CancelFunc
+	dataDir      string
+	db           *bolt.DB
 }
 
 var (
 	listener     *blockEventListener
-	listenerOnce sync.Once
+	listenerOnce sync.Once // 确保只初始化一次
 )
 
+// 单例模式，确保只有一个实例
 // GetBlockListener 获取区块监听器实例
 func GetBlockListener() *blockEventListener {
 	return listener

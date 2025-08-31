@@ -3,6 +3,8 @@ package main
 import (
 	"application/api"
 	"application/config"
+	"application/middleware"
+	"application/model"
 	"application/pkg/fabric"
 	"fmt"
 	"log"
@@ -21,6 +23,11 @@ func main() {
 		log.Fatalf("初始化Fabric客户端失败：%v", err)
 	}
 
+	// 初始化数据库
+	if err := model.InitDB(); err != nil {
+		log.Fatalf("初始化数据库失败：%v", err)
+	}
+
 	// 创建 Gin 路由
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
@@ -28,9 +35,36 @@ func main() {
 	apiGroup := r.Group("/api")
 
 	// 注册路由
+	accountHandler := api.NewAccountHandler()
 	realtyAgencyHandler := api.NewRealtyAgencyHandler()
 	tradingPlatformHandler := api.NewTradingPlatformHandler()
 	bankHandler := api.NewBankHandler()
+
+	// 创建JWT中间件
+	jwtMiddleware, err := middleware.NewJWTMiddleware()
+	if err != nil {
+		log.Fatalf("创建JWT中间件失败：%v", err)
+	}
+
+	// 账号相关接口（无需认证）
+	account := apiGroup.Group("/account")
+	{
+		// 用户注册
+		account.POST("/register", accountHandler.Register)
+		// 用户登录
+		account.POST("/login", accountHandler.Login)
+		// 用户登出
+		account.POST("/logout", accountHandler.Logout)
+	}
+
+	// 需要认证的账号接口
+	authAccount := apiGroup.Group("/account").Use(jwtMiddleware.Auth())
+	{
+		// 获取用户信息
+		authAccount.GET("/profile", accountHandler.GetProfile)
+		// 更新用户信息
+		authAccount.PUT("/profile", accountHandler.UpdateProfile)
+	}
 
 	// 不动产登记机构的接口
 	realty := apiGroup.Group("/realty-agency")
@@ -70,9 +104,25 @@ func main() {
 		bank.GET("/block/list", bankHandler.QueryBlockList)
 	}
 
+	// 打印路由信息
+	printRoutes(r)
+
 	// 启动服务器
 	addr := fmt.Sprintf(":%d", config.GlobalConfig.Server.Port)
+	log.Printf("服务器启动在端口: %d", config.GlobalConfig.Server.Port)
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("启动服务器失败：%v", err)
 	}
+}
+
+// printRoutes 打印所有注册的路由
+func printRoutes(r *gin.Engine) {
+	log.Println("=== 注册的路由信息 ===")
+
+	routes := r.Routes()
+	for _, route := range routes {
+		log.Printf("%-8s %s", route.Method, route.Path)
+	}
+
+	log.Println("=====================")
 }
