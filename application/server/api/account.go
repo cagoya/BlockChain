@@ -4,9 +4,14 @@ import (
 	"application/model"
 	"application/service"
 	"application/utils"
-	"strings"
+	"bytes"
+	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"path/filepath"
+	"strings"
 )
 
 type AccountHandler struct {
@@ -63,7 +68,6 @@ func (h *AccountHandler) Login(c *gin.Context) {
 			"username":   user.Username,
 			"email":      user.Email,
 			"org":        user.Org,
-			"role":       user.Role,
 			"createTime": user.CreateTime,
 			"updateTime": user.UpdateTime,
 		},
@@ -116,7 +120,6 @@ func (h *AccountHandler) GetProfile(c *gin.Context) {
 		"username":   user.Username,
 		"email":      user.Email,
 		"org":        user.Org,
-		"role":       user.Role,
 		"createTime": user.CreateTime,
 		"updateTime": user.UpdateTime,
 	}
@@ -159,4 +162,80 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	utils.SuccessWithMessage(c, "更新成功", nil)
+}
+
+func (h *AccountHandler) GetAvatar(c *gin.Context) {
+	// 从上下文中获取用户ID（由中间件设置）
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	avatar, err := h.accountService.GetAvatarById(userID.(uint))
+	if err != nil {
+		utils.ServerError(c, "获取头像失败："+err.Error())
+		return
+	}
+	imageType, err := getImageMIMEType(avatar.Bytes())
+	if err != nil {
+		utils.ServerError(c, "获取图片类型失败："+err.Error())
+		return
+	}
+	c.Header("Content-Type", imageType)
+	c.Data(http.StatusOK, imageType, avatar.Bytes())
+}
+
+func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
+	// 从上下文中获取用户ID（由中间件设置）
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	// 从表单中获取图片
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		utils.ServerError(c, "获取头像失败："+err.Error())
+		return
+	}
+	// 保存图片到本地
+	uniqueID := uuid.New().String()
+	filePath := filepath.Join(model.AvatarPath, uniqueID+"_"+file.Filename)
+	err = c.SaveUploadedFile(file, filePath)
+	if err != nil {
+		utils.ServerError(c, "保存头像失败："+err.Error())
+		return
+	}
+	// 更新头像
+	err = h.accountService.UpdateAvatar(userID.(uint), uniqueID+"_"+file.Filename)
+	if err != nil {
+		utils.ServerError(c, "更新头像失败："+err.Error())
+		return
+	}
+	utils.SuccessWithMessage(c, "更新成功", nil)
+}
+
+// 辅助函数，判断图片类型
+func getImageMIMEType(data []byte) (string, error) {
+	// 确保数据足够长以检查文件头
+	if len(data) < 8 {
+		return "", fmt.Errorf("数据太短，无法识别图片类型")
+	}
+
+	// 检查 PNG 文件头 (89 50 4E 47 0D 0A 1A 0A)
+	if bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}) {
+		return "image/png", nil
+	}
+
+	// 检查 JPEG 文件头 (FF D8 FF)
+	if bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}) {
+		return "image/jpeg", nil
+	}
+
+	contentType := http.DetectContentType(data)
+	if contentType == "application/octet-stream" {
+		return "", fmt.Errorf("不支持的图片类型")
+	}
+
+	return contentType, nil
 }
