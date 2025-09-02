@@ -10,7 +10,7 @@ type User struct {
 	ID           uint          `json:"id" gorm:"primaryKey;autoIncrement"`                    // 主键，用户 ID
 	Username     string        `json:"username" gorm:"uniqueIndex;type:varchar(50);not null"` // 用户名
 	Email        string        `json:"email" gorm:"type:varchar(50);not null"`                // 邮箱
-	AvatarName   string        `json:"-" gorm:"type:varchar(255);not null"`                   // 头像图片名称
+	AvatarURL    string        `json:"avatarURL" gorm:"type:varchar(255);not null"`           // 头像 URL
 	PasswordHash string        `json:"-" gorm:"type:varchar(255);not null"`                   // 密码哈希
 	Org          pq.Int32Array `json:"org" gorm:"type:integer[];not null"`                    // 组织，可以有多个
 	CreateTime   time.Time     `json:"createTime" gorm:"autoCreateTime"`                      // 创建时间
@@ -49,5 +49,4 @@ type RegisterRequest struct {
 	Org      pq.Int32Array `json:"org"`
 }
 
-// 头像文件夹路径
-const AvatarPath = "file/avatar"
+const DefaultAvatarURL = "https://picui.cn/api/v1/upload/1591/1722772800/default.png"

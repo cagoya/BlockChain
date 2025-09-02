@@ -2,9 +2,7 @@ package service
 
 import (
 	"application/model"
-	"bytes"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -47,7 +45,7 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 	user := &model.User{
 		Username:     req.Username,
 		Email:        req.Email,
-		AvatarName:   "default.png",
+		AvatarURL:    model.DefaultAvatarURL,
 		PasswordHash: string(passwordHash),
 		Org:          req.Org,
 	}
@@ -152,44 +150,35 @@ func (s *AccountService) UpdateUser(userID uint, updates map[string]interface{})
 	return nil
 }
 
-// 根据用户ID获取头像
-func (s *AccountService) GetAvatarById(userID uint) (bytes.Buffer, error) {
+// 根据用户ID获取头像URL
+func (s *AccountService) GetAvatarById(userID uint) (string, error) {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return bytes.Buffer{}, fmt.Errorf("用户不存在")
+			return "", fmt.Errorf("用户不存在")
 		}
-		return bytes.Buffer{}, fmt.Errorf("查询用户失败：%v", err)
+		return "", fmt.Errorf("查询用户失败：%v", err)
 	}
-	f, err := os.Open(model.AvatarPath + "/" + user.AvatarName)
-	if err != nil {
-		return bytes.Buffer{}, fmt.Errorf("打开头像文件失败：%v", err)
-	}
-	defer f.Close()
-	avatarImage := bytes.Buffer{}
-	if _, err := avatarImage.ReadFrom(f); err != nil {
-		return bytes.Buffer{}, fmt.Errorf("读取头像文件失败：%v", err)
-	}
-	return avatarImage, nil
+	return user.AvatarURL, nil
 }
 
 // 更新头像
-func (s *AccountService) UpdateAvatar(userID uint, newAvatarName string) error {
+func (s *AccountService) UpdateAvatar(userID uint, newAvatarURL string) (string, error) {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("用户不存在")
+			return "", fmt.Errorf("用户不存在")
 		}
-		return fmt.Errorf("查询用户失败：%v", err)
+		return "", fmt.Errorf("查询用户失败：%v", err)
 	}
-	user.AvatarName = newAvatarName
+	user.AvatarURL = newAvatarURL
 	err = s.db.Save(&user).Error
 	if err != nil {
-		return fmt.Errorf("更新头像失败：%v", err)
+		return "", fmt.Errorf("更新头像失败：%v", err)
 	}
-	return nil
+	return user.AvatarURL, nil
 }
 
 // 辅助方法
