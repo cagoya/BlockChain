@@ -1,0 +1,172 @@
+<template>
+  <div class="main-container register-container">
+    <div class="svg-top">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="1337" width="1337">
+        <defs>
+          <path id="path-1" opacity="1" fill-rule="evenodd" d="M1337,668.5 C1337,1037.455193874239 1037.455193874239,1337 668.5,1337 C523.6725684305388,1337 337,1236 370.50000000000006,1094 C434.03835568300906,824.6732385973953 6.906089672974592e-14,892.6277623047779 0,668.5000000000001 C0,299.5448061257611 299.5448061257609,1.1368683772161603e-13 668.4999999999999,0 C1037.455193874239,0 1337,299.544806125761 1337,668.5Z"/>
+          <linearGradient id="linearGradient-2" x1="0.79" y1="0.62" x2="0.21" y2="0.86">
+            <stop offset="0" stop-color="rgb(88,62,213)" stop-opacity="1"/>
+            <stop offset="1" stop-color="rgb(23,215,250)" stop-opacity="1"/>
+          </linearGradient>
+        </defs>
+        <g opacity="1">
+          <use xlink:href="#path-1" fill="url(#linearGradient-2)" fill-opacity="1"/>
+        </g>
+      </svg>
+    </div>
+    <div class="svg-bottom">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="896" width="967.8852157128662">
+        <defs>
+          <path id="path-2" opacity="1" fill-rule="evenodd" d="M896,448 C1142.6325445712241,465.5747656464056 695.2579309733121,896 448,896 C200.74206902668806,896 5.684341886080802e-14,695.2579309733121 0,448.0000000000001 C0,200.74206902668806 200.74206902668791,5.684341886080802e-14 447.99999999999994,0 C695.2579309733121,0 475,418 896,448Z"/>
+          <linearGradient id="linearGradient-3" x1="0.5" y1="0" x2="0.5" y2="1">
+            <stop offset="0" stop-color="rgb(40,175,240)" stop-opacity="1"/>
+            <stop offset="1" stop-color="rgb(18,15,196)" stop-opacity="1"/>
+          </linearGradient>
+        </defs>
+        <g opacity="1">
+          <use xlink:href="#path-2" fill="url(#linearGradient-3)" fill-opacity="1"/>
+        </g>
+      </svg>
+    </div>
+    <section class="container">
+      <section class="wrapper">
+        <header>
+          <h1>创建账户</h1>
+        </header>
+        <section class="main-content">
+          <form @submit.prevent="handleRegister">
+            <input type="text" placeholder="用户名" v-model="username">
+            <div class="line"></div>
+            <input type="email" placeholder="邮箱" v-model="email">
+            <div class="validation-text" :class="{ 'error': !isEmailValid && email.length > 0 }">
+              {{ !isEmailValid && email.length > 0 ? '请输入有效的邮箱地址' : '' }}
+            </div>
+            <div class="line"></div>
+            <input type="password" placeholder="密码" v-model="password">
+            <div class="validation-text" :class="{ 'weak': passwordStrength === '弱', 'medium': passwordStrength === '中等', 'strong': passwordStrength === '强' }" v-if="password.length > 0">
+              密码强度: {{ passwordStrength }}
+            </div>
+            <div class="line"></div>
+            <div class="checkbox-group">
+              <label>组织:</label>
+              <div class="checkbox-container">
+                <div v-for="org in organizations" :key="org" class="checkbox-item">
+                  <input type="checkbox" :id="org" :value="org" v-model="selectedOrgs">
+                  <label :for="org">{{ org }}</label>
+                </div>
+              </div>
+              <div class="validation-text" :class="{ 'error': !isOrgValid }">
+                {{ !isOrgValid ? '请至少选择一个组织' : '' }}
+              </div>
+            </div>
+            <button type="submit" :disabled="!isFormValid">注册</button>
+          </form>
+        </section>
+        <footer>
+          <p @click="toLogin">已经有账号了?</p>
+        </footer>
+      </section>
+    </section>
+  </div>
+</template>
+
+<style>
+@import '../assets/auth.css';
+</style>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import axios from 'axios';
+import { message } from 'ant-design-vue';
+import router from '../router';
+
+// 响应式数据
+const username = ref('');
+const email = ref('');
+const password = ref('');
+const organizations = ['平台运营方', 'NFT创作者', '金融机构'];
+const selectedOrgs = ref<string[]>([]);
+
+// 邮箱格式验证
+const isEmailValid = computed(() => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.value) || email.value.length === 0;
+});
+
+// 密码强度验证
+const passwordStrength = computed(() => {
+  let score = 0;
+  if (!password.value) return '输入密码...';
+
+  const hasLower = /[a-z]/.test(password.value);
+  const hasUpper = /[A-Z]/.test(password.value);
+  const hasNumber = /[0-9]/.test(password.value);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password.value);
+
+  if (password.value.length >= 8) score++;
+  if (hasLower) score++;
+  if (hasUpper) score++;
+  if (hasNumber) score++;
+  if (hasSpecial) score++;
+
+  if (score >= 4) return '强';
+  if (score >= 2) return '中等';
+  return '弱';
+});
+
+// 组织选择验证
+const isOrgValid = computed(() => {
+  return selectedOrgs.value.length > 0;
+});
+
+// 表单整体验证
+const isFormValid = computed(() => {
+  return username.value.length > 0 && 
+         isEmailValid.value && 
+         passwordStrength.value !== '弱' && 
+         passwordStrength.value !== '输入密码...' &&
+         isOrgValid.value;
+});
+
+// 组织转换关系
+const organizationsMap = {
+  "平台运营方": 1,
+  "NFT创作者": 2,
+  "金融机构": 3,
+};
+
+// 转换函数
+const convertOrganizations = (selectedOrgs: string[]) => {
+  return selectedOrgs.map(org => organizationsMap[org as keyof typeof organizationsMap]);
+};
+
+// 注册处理函数
+const handleRegister = async () => {
+  if (isFormValid.value) {
+    try {
+    const response = await axios.post('http://localhost:8888/api/account/register', {
+      Username: username.value,
+      Email: email.value,
+      Password: password.value,
+      Org: convertOrganizations(selectedOrgs.value),
+    });
+    if (response.status === 200 && response.data.code === 200) {
+      message.success('注册成功！');
+      router.push('/login');
+    } else {
+      message.error(`${response.data.message}`);
+    }
+  } catch (error) {
+    message.error('注册请求失败，请检查网络连接。');
+    console.error(error);
+  }
+  } else {
+    message.error('表单验证失败，无法注册。');
+  }
+};
+
+// 跳转登录
+const toLogin = () => {
+  router.push('/login');
+};
+</script>

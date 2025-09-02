@@ -32,6 +32,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	// 添加CORS中间件
+	r.Use(middleware.CORSMiddleware())
+
 	apiGroup := r.Group("/api")
 
 	// 注册路由
