@@ -41,15 +41,16 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 		return fmt.Errorf("密码加密失败：%v", err)
 	}
 
-	// 创建用户
+	// 创建用户，使用默认头像
 	user := &model.User{
 		Username:     req.Username,
 		Email:        req.Email,
+		AvatarURL:    model.DefaultAvatarURL,
 		PasswordHash: string(passwordHash),
 		Org:          req.Org,
-		Role:         "user", // 默认角色
 	}
 
+	fmt.Printf("%T", user.Org)
 	// 保存用户到数据库
 	err = s.db.Create(user).Error
 	if err != nil {
@@ -149,6 +150,37 @@ func (s *AccountService) UpdateUser(userID uint, updates map[string]interface{})
 	return nil
 }
 
+// 根据用户ID获取头像URL
+func (s *AccountService) GetAvatarById(userID uint) (string, error) {
+	var user model.User
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("用户不存在")
+		}
+		return "", fmt.Errorf("查询用户失败：%v", err)
+	}
+	return user.AvatarURL, nil
+}
+
+// 更新头像
+func (s *AccountService) UpdateAvatar(userID uint, newAvatarURL string) (string, error) {
+	var user model.User
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", fmt.Errorf("用户不存在")
+		}
+		return "", fmt.Errorf("查询用户失败：%v", err)
+	}
+	user.AvatarURL = newAvatarURL
+	err = s.db.Save(&user).Error
+	if err != nil {
+		return "", fmt.Errorf("更新头像失败：%v", err)
+	}
+	return user.AvatarURL, nil
+}
+
 // 辅助方法
 
 // 生成JWT令牌
@@ -159,7 +191,6 @@ func (s *AccountService) generateJWT(user *model.User) (string, error) {
 		UserID:   user.ID,
 		Username: user.Username,
 		Org:      user.Org,
-		Role:     user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

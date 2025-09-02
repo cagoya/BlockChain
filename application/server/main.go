@@ -32,6 +32,9 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	// 添加CORS中间件
+	r.Use(middleware.CORSMiddleware())
+
 	apiGroup := r.Group("/api")
 
 	// 注册路由
@@ -58,12 +61,16 @@ func main() {
 	}
 
 	// 需要认证的账号接口
-	authAccount := apiGroup.Group("/account").Use(jwtMiddleware.Auth())
+	authAccount := apiGroup.Group("/account").Use(jwtMiddleware.Auth(1))
 	{
 		// 获取用户信息
 		authAccount.GET("/profile", accountHandler.GetProfile)
 		// 更新用户信息
 		authAccount.PUT("/profile", accountHandler.UpdateProfile)
+		// 获取头像
+		authAccount.GET("/avatar", accountHandler.GetAvatar)
+		// 更新头像
+		authAccount.PUT("/avatar", accountHandler.UpdateAvatar)
 	}
 
 	// 不动产登记机构的接口

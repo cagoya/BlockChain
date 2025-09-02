@@ -2,8 +2,11 @@ package api
 
 import (
 	"application/model"
+	"application/pkg/image"
 	"application/service"
 	"application/utils"
+	"net/http"
+
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +14,7 @@ import (
 
 type AccountHandler struct {
 	accountService *service.AccountService
+	imageHelper    *image.ImageHelper
 }
 
 func NewAccountHandler() *AccountHandler {
@@ -21,6 +25,7 @@ func NewAccountHandler() *AccountHandler {
 
 	return &AccountHandler{
 		accountService: accountService,
+		imageHelper:    image.NewImageHelper(),
 	}
 }
 
@@ -58,15 +63,7 @@ func (h *AccountHandler) Login(c *gin.Context) {
 	// 返回用户信息（不包含密码）和令牌
 	response := map[string]interface{}{
 		"token": token,
-		"user": map[string]interface{}{
-			"id":         user.ID,
-			"username":   user.Username,
-			"email":      user.Email,
-			"org":        user.Org,
-			"role":       user.Role,
-			"createTime": user.CreateTime,
-			"updateTime": user.UpdateTime,
-		},
+		"user":  user,
 	}
 
 	utils.SuccessWithMessage(c, "登录成功", response)
@@ -111,15 +108,7 @@ func (h *AccountHandler) GetProfile(c *gin.Context) {
 	}
 
 	// 返回用户信息（不包含密码）
-	response := map[string]interface{}{
-		"id":         user.ID,
-		"username":   user.Username,
-		"email":      user.Email,
-		"org":        user.Org,
-		"role":       user.Role,
-		"createTime": user.CreateTime,
-		"updateTime": user.UpdateTime,
-	}
+	response := user
 
 	utils.Success(c, response)
 }
@@ -159,4 +148,48 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	utils.SuccessWithMessage(c, "更新成功", nil)
+}
+
+func (h *AccountHandler) GetAvatar(c *gin.Context) {
+	// 从上下文中获取用户ID（由中间件设置）
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	avatarURL, err := h.accountService.GetAvatarById(userID.(uint))
+	if err != nil {
+		utils.ServerError(c, "获取头像失败："+err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"avatarURL": avatarURL})
+}
+
+func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
+	// 从上下文中获取用户ID（由中间件设置）
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	// 从表单中获取图片
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		utils.ServerError(c, "获取头像失败："+err.Error())
+		return
+	}
+	// 保存图片到图床
+	avatarURL, err := h.imageHelper.UploadImage(file)
+	if err != nil {
+		utils.ServerError(c, "保存头像失败："+err.Error())
+		return
+	}
+
+	// 更新头像
+	avatarURL, err = h.accountService.UpdateAvatar(userID.(uint), avatarURL)
+	if err != nil {
+		utils.ServerError(c, "更新头像失败："+err.Error())
+		return
+	}
+	utils.SuccessWithMessage(c, "更新成功", avatarURL)
 }
