@@ -45,7 +45,7 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 	user := &model.User{
 		Username:     req.Username,
 		Email:        req.Email,
-		AvatarName:   model.DefaultImageName,
+		AvatarURL:    model.DefaultImageBaseURL + "/" + model.DefaultImageName,
 		PasswordHash: string(passwordHash),
 		Org:          req.Org,
 	}
@@ -160,7 +160,7 @@ func (s *AccountService) GetAvatarById(userID uint) (string, error) {
 		}
 		return "", fmt.Errorf("查询用户失败：%v", err)
 	}
-	return model.DefaultImageBaseURL + "/" + user.AvatarName, nil
+	return user.AvatarURL, nil
 }
 
 // 更新头像
@@ -173,12 +173,12 @@ func (s *AccountService) UpdateAvatar(userID uint, newAvatarName string) (string
 		}
 		return "", fmt.Errorf("查询用户失败：%v", err)
 	}
-	user.AvatarName = newAvatarName
+	user.AvatarURL = model.DefaultImageBaseURL + "/" + newAvatarName
 	err = s.db.Save(&user).Error
 	if err != nil {
 		return "", fmt.Errorf("更新头像失败：%v", err)
 	}
-	return model.DefaultImageBaseURL + "/" + user.AvatarName, nil
+	return user.AvatarURL, nil
 }
 
 // 辅助方法

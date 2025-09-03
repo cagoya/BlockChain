@@ -21,6 +21,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/personal',
+      component: () => import('../views/Personal.vue'),
+    },
+    {
       path: '/realty-agency',
       component: () => import('../views/RealtyAgency.vue'),
     },
