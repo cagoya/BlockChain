@@ -29,11 +29,14 @@ func main() {
 	}
 
 	// 创建 Gin 路由
-	gin.SetMode(gin.ReleaseMode)
+	//gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	// 添加CORS中间件
 	r.Use(middleware.CORSMiddleware())
+
+	// 添加静态文件服务
+	r.Static("/public", "./public")
 
 	apiGroup := r.Group("/api")
 

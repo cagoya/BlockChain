@@ -2,19 +2,20 @@ package api
 
 import (
 	"application/model"
-	"application/pkg/image"
 	"application/service"
 	"application/utils"
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AccountHandler struct {
 	accountService *service.AccountService
-	imageHelper    *image.ImageHelper
 }
 
 func NewAccountHandler() *AccountHandler {
@@ -25,7 +26,6 @@ func NewAccountHandler() *AccountHandler {
 
 	return &AccountHandler{
 		accountService: accountService,
-		imageHelper:    image.NewImageHelper(),
 	}
 }
 
@@ -178,15 +178,19 @@ func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
 	}
-	// 保存图片到图床
-	avatarURL, err := h.imageHelper.UploadImage(file)
-	if err != nil {
-		utils.ServerError(c, "保存头像失败："+err.Error())
+
+	// 为图片添加 uid，避免名称冲突
+	newFileName := uuid.New().String() + file.Filename
+	dst := filepath.Join("public", "images", newFileName)
+
+	// 保存图片到 pulic/images
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		utils.ServerError(c, fmt.Sprintf("保存图片失败：%s", err.Error()))
 		return
 	}
 
 	// 更新头像
-	avatarURL, err = h.accountService.UpdateAvatar(userID.(uint), avatarURL)
+	avatarURL, err := h.accountService.UpdateAvatar(userID.(uint), newFileName)
 	if err != nil {
 		utils.ServerError(c, "更新头像失败："+err.Error())
 		return
