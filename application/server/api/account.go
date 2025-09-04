@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type AccountHandler struct {
@@ -101,7 +102,7 @@ func (h *AccountHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.accountService.GetUserByID(userID.(uint))
+	user, err := h.accountService.GetUserByID(userID.(int))
 	if err != nil {
 		utils.ServerError(c, "获取用户信息失败："+err.Error())
 		return
@@ -141,7 +142,7 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	err := h.accountService.UpdateUser(userID.(uint), updates)
+	err := h.accountService.UpdateUser(userID.(int), updates)
 	if err != nil {
 		utils.ServerError(c, "更新用户信息失败："+err.Error())
 		return
@@ -157,7 +158,7 @@ func (h *AccountHandler) GetAvatar(c *gin.Context) {
 		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	avatarURL, err := h.accountService.GetAvatarById(userID.(uint))
+	avatarURL, err := h.accountService.GetAvatarById(userID.(int))
 	if err != nil {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
@@ -190,10 +191,35 @@ func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
 	}
 
 	// 更新头像
-	avatarURL, err := h.accountService.UpdateAvatar(userID.(uint), newFileName)
+	avatarURL, err := h.accountService.UpdateAvatar(userID.(int), newFileName)
 	if err != nil {
 		utils.ServerError(c, "更新头像失败："+err.Error())
 		return
 	}
 	utils.SuccessWithMessage(c, "更新成功", avatarURL)
+}
+
+func (h *AccountHandler) UpdateOrg(c *gin.Context) {
+	// 从上下文获取用户组织
+	org, exists := c.Get("org")
+	if !exists {
+		utils.ServerError(c, "用户组织获取失败")
+		return
+	}
+	if !model.CheckOrg(org.(pq.Int32Array), 1) {
+		utils.ServerError(c, "用户不属于组织")
+		return
+	}
+	var req model.UpdateOrgRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "请求参数格式错误")
+		return
+	}
+
+	err := h.accountService.UpdateOrg(req.UserID, req.Org)
+	if err != nil {
+		utils.ServerError(c, "更新组织失败："+err.Error())
+		return
+	}
+	utils.SuccessWithMessage(c, "更新成功", nil)
 }

@@ -42,9 +42,6 @@ func main() {
 
 	// 注册路由
 	accountHandler := api.NewAccountHandler()
-	realtyAgencyHandler := api.NewRealtyAgencyHandler()
-	tradingPlatformHandler := api.NewTradingPlatformHandler()
-	bankHandler := api.NewBankHandler()
 
 	// 创建JWT中间件
 	jwtMiddleware, err := middleware.NewJWTMiddleware()
@@ -64,7 +61,7 @@ func main() {
 	}
 
 	// 需要认证的账号接口
-	authAccount := apiGroup.Group("/account").Use(jwtMiddleware.Auth(1))
+	authAccount := apiGroup.Group("/account").Use(jwtMiddleware.Auth())
 	{
 		// 获取用户信息
 		authAccount.GET("/profile", accountHandler.GetProfile)
@@ -74,44 +71,18 @@ func main() {
 		authAccount.GET("/avatar", accountHandler.GetAvatar)
 		// 更新头像
 		authAccount.PUT("/avatar", accountHandler.UpdateAvatar)
+		// 更新组织接口
+		authAccount.PUT("/org", accountHandler.UpdateOrg)
 	}
 
-	// 不动产登记机构的接口
-	realty := apiGroup.Group("/realty-agency")
+	// 钱包相关接口
+	walletHandler := api.NewWalletHandler()
+	wallet := apiGroup.Group("/wallet").Use(jwtMiddleware.Auth())
 	{
-		// 创建房产信息
-		realty.POST("/realty/create", realtyAgencyHandler.CreateRealEstate)
-		// 查询房产接口
-		realty.GET("/realty/:id", realtyAgencyHandler.QueryRealEstate)
-		realty.GET("/realty/list", realtyAgencyHandler.QueryRealEstateList)
-		// 查询区块接口
-		realty.GET("/block/list", realtyAgencyHandler.QueryBlockList)
-	}
-
-	// 交易平台的接口
-	trading := apiGroup.Group("/trading-platform")
-	{
-		// 生成交易
-		trading.POST("/transaction/create", tradingPlatformHandler.CreateTransaction)
-		// 查询房产接口
-		trading.GET("/realty/:id", tradingPlatformHandler.QueryRealEstate)
-		// 查询交易接口
-		trading.GET("/transaction/:txId", tradingPlatformHandler.QueryTransaction)
-		trading.GET("/transaction/list", tradingPlatformHandler.QueryTransactionList)
-		// 查询区块接口
-		trading.GET("/block/list", tradingPlatformHandler.QueryBlockList)
-	}
-
-	// 银行的接口
-	bank := apiGroup.Group("/bank")
-	{
-		// 完成交易
-		bank.POST("/transaction/complete/:txId", bankHandler.CompleteTransaction)
-		// 查询交易接口
-		bank.GET("/transaction/:txId", bankHandler.QueryTransaction)
-		bank.GET("/transaction/list", bankHandler.QueryTransactionList)
-		// 查询区块接口
-		bank.GET("/block/list", bankHandler.QueryBlockList)
+		wallet.POST("/create", walletHandler.CreateAccount)
+		wallet.GET("/balance", walletHandler.GetBlance)
+		wallet.POST("/transfer", walletHandler.Transfer)
+		wallet.GET("/transfer", walletHandler.GetTransfer)
 	}
 
 	// 打印路由信息
