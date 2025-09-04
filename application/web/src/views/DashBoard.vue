@@ -10,6 +10,10 @@
                   <template #icon><UserOutlined /></template>
                   更改头像
                 </a-menu-item>
+                <a-menu-item key="edit_profile">
+                  <template #icon><SettingOutlined /></template>
+                  编辑信息
+                </a-menu-item>
                 <a-menu-item key="logout">
                   <template #icon><LogoutOutlined /></template>
                   登出
@@ -29,7 +33,7 @@
 
     <main class="main-content">
       <div class="card-list">
-        <router-link to="/nft-creation" class="card card-creation">
+        <router-link to="/creation" class="card card-creation">
           <div class="card-icon">
             <EditOutlined />
           </div>
@@ -37,7 +41,7 @@
           <div class="card-description">将你的创意转化为独一无二的数字艺术品。</div>
         </router-link>
 
-        <router-link to="/nft-trading" class="card card-trading">
+        <router-link to="/market" class="card card-trading">
           <div class="card-icon">
             <TransactionOutlined />
           </div>
@@ -45,7 +49,7 @@
           <div class="card-description">探索、买卖和收藏来自全球的数字资产。</div>
         </router-link>
 
-        <router-link to="/my-wallet" class="card card-wallet">
+        <router-link to="/wallet" class="card card-wallet">
           <div class="card-icon">
             <WalletOutlined />
           </div>
@@ -54,6 +58,28 @@
         </router-link>
       </div>
     </main>
+
+    <template>
+      <a-modal v-model:visible="editProfileModalVisible" title="编辑信息" :footer="null">
+        <a-form :model="editProfileForm" :label-col="{ span: 4 }" :wrapper-col="{ span: 14 }">
+          <a-form-item label="ID">
+            <a-input v-model:value="editProfileForm.id" disabled />
+          </a-form-item>
+          <a-form-item label="用户名">
+            <a-input v-model:value="editProfileForm.username" disabled />
+          </a-form-item>
+          <a-form-item label="密码">
+            <a-input v-model:value="editProfileForm.password" placeholder="请输入新的密码" />
+          </a-form-item>
+          <a-form-item label="邮箱">
+            <a-input v-model:value="editProfileForm.email" />
+          </a-form-item>
+          <a-form-item label="组织">
+            <a-input v-model:value="editProfileForm.org" disabled />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+    </template>
 
     <a-modal v-model:visible="changeAvatarModalVisible" title="选择头像图片" :footer="null">
       <a-upload
@@ -109,6 +135,7 @@ import {
   TransactionOutlined,
   WalletOutlined,
   UserOutlined,
+  SettingOutlined,
   LogoutOutlined,
   PlusOutlined,
 } from '@ant-design/icons-vue';
@@ -116,7 +143,7 @@ import { message } from 'ant-design-vue';
 import { MenuInfo } from 'ant-design-vue/es/menu/src/interface';
 import VueCropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
-
+import { transformOrg } from '../utils';
 interface UserInfo {
   username: string;
   avatarURL: string;
@@ -137,6 +164,14 @@ const imageUrl = ref<string | undefined>(undefined); // 用于`a-upload`的预�
 const cropperImgSrc = ref(''); // 用于`vue-cropper`的图片源
 const cropper = ref<any>(null); // `vue-cropper`实例的引用
 const originalFileType = ref(''); // 存储原始文件类型
+const editProfileModalVisible = ref<boolean>(false); // 编辑信息模态框
+const editProfileForm = ref<any>({
+  id: '',
+  username: '',
+  password: '',
+  email: '',
+  org: '',
+});
 
 
 onMounted(() => {
@@ -151,6 +186,10 @@ const loadUserInfo = () => {
       const userInfo = JSON.parse(userInfoString);
       user.value.username = userInfo.username || user.value.username;
       user.value.avatarURL = userInfo.avatarURL || user.value.avatarURL;
+      editProfileForm.value.id = userInfo.id || editProfileForm.value.id;
+      editProfileForm.value.username = userInfo.username || editProfileForm.value.username;
+      editProfileForm.value.email = userInfo.email || editProfileForm.value.email;
+      editProfileForm.value.org = transformOrg(userInfo.org) || editProfileForm.value.org;
     } catch (e) {
       console.error('解析 localStorage 中的 userInfo 失败', e);
     }
@@ -164,7 +203,11 @@ const handleMenuClick = (e: MenuInfo) => {
   if (e.key === 'change_avatar') {
     changeAvatarModalVisible.value = true; // 打开文件选择弹窗
     imageUrl.value = undefined; // 清空上次选择的预览图
-  } else if (e.key === 'logout') {
+  } 
+  else if (e.key === 'edit_profile') {
+    editProfileModalVisible.value = true;
+  }
+  else if (e.key === 'logout') {
     handleLogout();
   }
 };
@@ -286,14 +329,6 @@ const handleCropCancel = () => {
   cropperImgSrc.value = ''; // 清空图片源
   originalFileType.value = ''; // 清空文件类型
 };
-
-// 暴露给模板使用（如果需要的话，但在这个组件内部通常不需要显式暴露）
-// defineExpose({
-//   changeAvatarModalVisible,
-//   cropperModalVisible,
-//   imageUrl,
-//   cropperImgSrc
-// });
 </script>
 
 <style scoped>
