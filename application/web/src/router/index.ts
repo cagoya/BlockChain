@@ -4,10 +4,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/',
-      component: () => import('../views/Home.vue'),
-    },
-    {
       path: '/login',
       component: () => import('../views/Login.vue'),
     },
@@ -21,16 +17,16 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/realty-agency',
-      component: () => import('../views/RealtyAgency.vue'),
+      path: '/market',
+      component: () => import('../views/Market.vue'),
     },
     {
-      path: '/trading-platform',
-      component: () => import('../views/TradingPlatform.vue'),
+      path: '/userManagement',
+      component: () => import('../views/UserManagement.vue'),
     },
     {
-      path: '/bank',
-      component: () => import('../views/Bank.vue'),
+      path: '/test',
+      component: () => import('../views/Test.vue'),
     },
     {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径

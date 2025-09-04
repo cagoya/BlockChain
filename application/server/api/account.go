@@ -2,19 +2,21 @@ package api
 
 import (
 	"application/model"
-	"application/pkg/image"
 	"application/service"
 	"application/utils"
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type AccountHandler struct {
 	accountService *service.AccountService
-	imageHelper    *image.ImageHelper
 }
 
 func NewAccountHandler() *AccountHandler {
@@ -25,7 +27,6 @@ func NewAccountHandler() *AccountHandler {
 
 	return &AccountHandler{
 		accountService: accountService,
-		imageHelper:    image.NewImageHelper(),
 	}
 }
 
@@ -101,7 +102,7 @@ func (h *AccountHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.accountService.GetUserByID(userID.(uint))
+	user, err := h.accountService.GetUserByID(userID.(int))
 	if err != nil {
 		utils.ServerError(c, "获取用户信息失败："+err.Error())
 		return
@@ -141,7 +142,7 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	err := h.accountService.UpdateUser(userID.(uint), updates)
+	err := h.accountService.UpdateUser(userID.(int), updates)
 	if err != nil {
 		utils.ServerError(c, "更新用户信息失败："+err.Error())
 		return
@@ -157,7 +158,7 @@ func (h *AccountHandler) GetAvatar(c *gin.Context) {
 		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	avatarURL, err := h.accountService.GetAvatarById(userID.(uint))
+	avatarURL, err := h.accountService.GetAvatarById(userID.(int))
 	if err != nil {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
@@ -178,18 +179,47 @@ func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
 	}
-	// 保存图片到图床
-	avatarURL, err := h.imageHelper.UploadImage(file)
-	if err != nil {
-		utils.ServerError(c, "保存头像失败："+err.Error())
+
+	// 为图片添加 uid，避免名称冲突
+	newFileName := uuid.New().String() + file.Filename
+	dst := filepath.Join("public", "images", newFileName)
+
+	// 保存图片到 pulic/images
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		utils.ServerError(c, fmt.Sprintf("保存图片失败：%s", err.Error()))
 		return
 	}
 
 	// 更新头像
-	avatarURL, err = h.accountService.UpdateAvatar(userID.(uint), avatarURL)
+	avatarURL, err := h.accountService.UpdateAvatar(userID.(int), newFileName)
 	if err != nil {
 		utils.ServerError(c, "更新头像失败："+err.Error())
 		return
 	}
 	utils.SuccessWithMessage(c, "更新成功", avatarURL)
+}
+
+func (h *AccountHandler) UpdateOrg(c *gin.Context) {
+	// 从上下文获取用户组织
+	org, exists := c.Get("org")
+	if !exists {
+		utils.ServerError(c, "用户组织获取失败")
+		return
+	}
+	if !model.CheckOrg(org.(pq.Int32Array), 1) {
+		utils.ServerError(c, "用户不属于组织")
+		return
+	}
+	var req model.UpdateOrgRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "请求参数格式错误")
+		return
+	}
+
+	err := h.accountService.UpdateOrg(req.UserID, req.Org)
+	if err != nil {
+		utils.ServerError(c, "更新组织失败："+err.Error())
+		return
+	}
+	utils.SuccessWithMessage(c, "更新成功", nil)
 }

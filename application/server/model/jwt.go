@@ -7,7 +7,7 @@ import (
 
 // Claims JWT声明
 type Claims struct {
-	UserID   uint          `json:"user_id"`
+	UserID   int           `json:"user_id"`
 	Username string        `json:"username"`
 	Org      pq.Int32Array `json:"org"`
 	jwt.RegisteredClaims

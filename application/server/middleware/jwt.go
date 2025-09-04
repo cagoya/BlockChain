@@ -8,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +26,7 @@ func NewJWTMiddleware() (*JWTMiddleware, error) {
 }
 
 // JWT认证中间件
-func (m *JWTMiddleware) Auth(targetOrgs int32) gin.HandlerFunc {
+func (m *JWTMiddleware) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从请求头获取令牌
 		authHeader := c.GetHeader("Authorization")
@@ -67,33 +66,7 @@ func (m *JWTMiddleware) Auth(targetOrgs int32) gin.HandlerFunc {
 		c.Set("username", claims.Username)
 		c.Set("org", claims.Org)
 
-		// 如果targetOrgs为-1，则不进行组织权限认证
-		if targetOrgs == -1 {
-			c.Next()
-			return
-		}
-
-		// 组织权限认证
-		org, exists := c.Get("org")
-		if !exists {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    http.StatusForbidden,
-				"message": "获取组织信息失败",
-			})
-			c.Abort()
-			return
-		}
-		for _, org := range org.(pq.Int32Array) {
-			if org == targetOrgs {
-				c.Next()
-				return
-			}
-		}
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    http.StatusForbidden,
-			"message": "权限不足，不属于指定组织",
-		})
-		c.Abort()
+		c.Next()
 	}
 }
 

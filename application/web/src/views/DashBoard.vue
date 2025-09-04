@@ -10,6 +10,10 @@
                   <template #icon><UserOutlined /></template>
                   更改头像
                 </a-menu-item>
+                <a-menu-item key="edit_profile">
+                  <template #icon><SettingOutlined /></template>
+                  编辑信息
+                </a-menu-item>
                 <a-menu-item key="logout">
                   <template #icon><LogoutOutlined /></template>
                   登出
@@ -29,7 +33,7 @@
 
     <main class="main-content">
       <div class="card-list">
-        <router-link to="/nft-creation" class="card card-creation">
+        <router-link to="/creation" class="card card-creation">
           <div class="card-icon">
             <EditOutlined />
           </div>
@@ -37,7 +41,7 @@
           <div class="card-description">将你的创意转化为独一无二的数字艺术品。</div>
         </router-link>
 
-        <router-link to="/nft-trading" class="card card-trading">
+        <router-link to="/market" class="card card-trading">
           <div class="card-icon">
             <TransactionOutlined />
           </div>
@@ -45,7 +49,7 @@
           <div class="card-description">探索、买卖和收藏来自全球的数字资产。</div>
         </router-link>
 
-        <router-link to="/my-wallet" class="card card-wallet">
+        <router-link to="/wallet" class="card card-wallet">
           <div class="card-icon">
             <WalletOutlined />
           </div>
@@ -54,26 +58,70 @@
         </router-link>
       </div>
     </main>
-    <a-modal v-model:visible="changeAvatarModalVisible" title="上传头像">
+
+    <template>
+      <a-modal v-model:visible="editProfileModalVisible" title="编辑信息" :footer="null">
+        <a-form :model="editProfileForm" :label-col="{ span: 4 }" :wrapper-col="{ span: 14 }">
+          <a-form-item label="ID">
+            <a-input v-model:value="editProfileForm.id" disabled />
+          </a-form-item>
+          <a-form-item label="用户名">
+            <a-input v-model:value="editProfileForm.username" disabled />
+          </a-form-item>
+          <a-form-item label="密码">
+            <a-input v-model:value="editProfileForm.password" placeholder="请输入新的密码" />
+          </a-form-item>
+          <a-form-item label="邮箱">
+            <a-input v-model:value="editProfileForm.email" />
+          </a-form-item>
+          <a-form-item label="组织">
+            <a-input v-model:value="editProfileForm.org" disabled />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+    </template>
+
+    <a-modal v-model:visible="changeAvatarModalVisible" title="选择头像图片" :footer="null">
       <a-upload
         name="avatar"
         list-type="picture-card"
         class="avatar-uploader"
         :show-upload-list="false"
         :before-upload="beforeUpload"
+        accept="image/jpeg,image/png,image/gif"
       >
-        <img v-if="imageUrl" :src="imageUrl" alt="avatar" style="width: 100%" />
+        <div v-if="imageUrl" class="uploaded-image-preview">
+          <img :src="imageUrl" alt="avatar preview" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
         <div v-else>
           <plus-outlined />
           <div class="ant-upload-text">上传</div>
         </div>
       </a-upload>
+      <div class="upload-tip">点击上方区域选择图片，将自动进入裁剪。</div>
+    </a-modal>
 
-      <template #footer>
-        <a-button key="submit" type="primary" :loading="uploading" @click="handleAvatarChangeConfirm">
-          确定
-        </a-button>
-      </template>
+    <a-modal
+      v-model:visible="cropperModalVisible"
+      title="裁剪头像"
+      @ok="handleCropOk"
+      @cancel="handleCropCancel"
+      :width="600"
+      :confirm-loading="uploading"
+    >
+      <div class="cropper-container">
+        <vue-cropper
+          ref="cropper"
+          :src="cropperImgSrc"
+          :aspectRatio="1"
+          :autoCropArea="0.8"
+          :viewMode="1"
+          :guides="true"
+          :cropBoxMovable="true"
+          :cropBoxResizable="true"
+          dragMode="move"
+          />
+      </div>
     </a-modal>
   </div>
 </template>
@@ -87,12 +135,15 @@ import {
   TransactionOutlined,
   WalletOutlined,
   UserOutlined,
+  SettingOutlined,
   LogoutOutlined,
   PlusOutlined,
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { MenuInfo } from 'ant-design-vue/es/menu/src/interface';
-
+import VueCropper from 'vue-cropperjs';
+import 'cropperjs/dist/cropper.css';
+import { transformOrg } from '../utils';
 interface UserInfo {
   username: string;
   avatarURL: string;
@@ -106,13 +157,22 @@ const user = ref<UserInfo>({
 });
 
 const popoverVisible = ref<boolean>(false);
-const changeAvatarModalVisible = ref<boolean>(false);
-const uploading = ref<boolean>(false);
-// 移除 fileList，因为我们不需要它的状态
-// const fileList = ref<UploadProps['fileList']>([]); 
-const imageUrl = ref<string | undefined>(undefined);
-// 新增一个 ref 来暂存文件对象
-const pendingFile = ref<File | null>(null);
+const changeAvatarModalVisible = ref<boolean>(false); // 选择文件模态框
+const cropperModalVisible = ref<boolean>(false); // 裁剪模态框
+const uploading = ref<boolean>(false); 
+const imageUrl = ref<string | undefined>(undefined); // 用于`a-upload`的预览
+const cropperImgSrc = ref(''); // 用于`vue-cropper`的图片源
+const cropper = ref<any>(null); // `vue-cropper`实例的引用
+const originalFileType = ref(''); // 存储原始文件类型
+const editProfileModalVisible = ref<boolean>(false); // 编辑信息模态框
+const editProfileForm = ref<any>({
+  id: '',
+  username: '',
+  password: '',
+  email: '',
+  org: '',
+});
+
 
 onMounted(() => {
   loadUserInfo();
@@ -126,19 +186,28 @@ const loadUserInfo = () => {
       const userInfo = JSON.parse(userInfoString);
       user.value.username = userInfo.username || user.value.username;
       user.value.avatarURL = userInfo.avatarURL || user.value.avatarURL;
+      editProfileForm.value.id = userInfo.id || editProfileForm.value.id;
+      editProfileForm.value.username = userInfo.username || editProfileForm.value.username;
+      editProfileForm.value.email = userInfo.email || editProfileForm.value.email;
+      editProfileForm.value.org = transformOrg(userInfo.org) || editProfileForm.value.org;
     } catch (e) {
       console.error('解析 localStorage 中的 userInfo 失败', e);
     }
   }
-  imageUrl.value = user.value.avatarURL;
+  // 这里不再需要将 user.value.avatarURL 赋给 imageUrl.value，因为 imageUrl 只用于裁剪前的临时预览
 };
 
 // 处理 Popover 菜单点击事件
 const handleMenuClick = (e: MenuInfo) => {
   popoverVisible.value = false;
   if (e.key === 'change_avatar') {
-    changeAvatarModalVisible.value = true;
-  } else if (e.key === 'logout') {
+    changeAvatarModalVisible.value = true; // 打开文件选择弹窗
+    imageUrl.value = undefined; // 清空上次选择的预览图
+  } 
+  else if (e.key === 'edit_profile') {
+    editProfileModalVisible.value = true;
+  }
+  else if (e.key === 'logout') {
     handleLogout();
   }
 };
@@ -162,11 +231,7 @@ const handleLogout = async () => {
   }
 };
 
-/**
- * @description: 在文件上传前进行处理，并生成预览图
- * @param {File} file - 当前选择的文件
- * @return {boolean} 返回 false 阻止 a-upload 自动上传
- */
+// a-upload 的 beforeUpload 钩子
 const beforeUpload = (file: File) => {
   // 检查文件类型
   const isImage = ['image/jpeg', 'image/png', 'image/gif'].includes(file.type);
@@ -181,76 +246,89 @@ const beforeUpload = (file: File) => {
     return false;
   }
 
-  // 使用 FileReader 读取文件并生成预览 URL
+  // 使用 FileReader 读取文件并将其作为裁剪组件的源
   const reader = new FileReader();
   reader.readAsDataURL(file);
-  reader.onload = () => {
-    imageUrl.value = reader.result as string;
+  reader.onload = (e) => {
+    cropperImgSrc.value = e.target?.result as string; // 设置裁剪组件的图片源
+    changeAvatarModalVisible.value = false; // 关闭文件选择模态框
+    cropperModalVisible.value = true; // 打开裁剪模态框
   };
-  
-  // 暂存文件对象，等待用户点击确定
-  pendingFile.value = file;
-  
+  originalFileType.value = file.type; // 保存原始文件类型
+
   // 返回 false 阻止 antd 的默认上传行为
   return false;
 };
 
-// 确认更改头像，执行真正的上传逻辑
-const handleAvatarChangeConfirm = async () => {
-  if (!pendingFile.value) {
-    message.warning('请先选择图片！');
+
+// 裁剪模态框的确定按钮事件
+const handleCropOk = () => {
+  if (!cropper.value) {
+    message.error('裁剪组件未加载完成');
     return;
   }
 
-  uploading.value = true;
-  
-  try {
-    const formData = new FormData();
-    formData.append('avatar', pendingFile.value);
-    
-    // 调用后端上传接口
-    const response = await axios.put('http://localhost:8888/api/account/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    
-    if (response.data && response.data.code === 200) {
-      const newAvatarUrl = response.data.data.avatarURL || URL.createObjectURL(pendingFile.value);
-      user.value.avatarURL = newAvatarUrl;
+  uploading.value = true; // 开始上传，显示加载状态
+
+  // 获取裁剪后的 Blob 数据，并使用动态类型
+  cropper.value.getCroppedCanvas().toBlob(async (blob: Blob | null) => {
+    if (blob) {
+      // 创建一个新的 File 对象用于上传
+      const fileExtension = originalFileType.value.split('/')[1] || 'jpeg'; // 默认jpeg
+      const croppedFile = new File([blob], `avatar.${fileExtension}`, { type: originalFileType.value });
       
-      // 更新 localStorage
-      const userInfoString = localStorage.getItem('userInfo');
-      let userInfo = {};
-      if (userInfoString) {
-        try {
-          userInfo = JSON.parse(userInfoString);
-        } catch (e) {
-          console.error('解析 localStorage 中的 userInfo 失败', e);
+      try {
+        const formData = new FormData();
+        formData.append('avatar', croppedFile);
+        
+        // 调用后端上传接口
+        const response = await axios.put('http://localhost:8888/api/account/avatar', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        if (response.data && response.data.code === 200) {
+          const newAvatarUrl = response.data.data.avatarURL || URL.createObjectURL(croppedFile);
+          user.value.avatarURL = newAvatarUrl;
+          
+          // 更新 localStorage
+          const userInfoString = localStorage.getItem('userInfo');
+          let userInfo = {};
+          if (userInfoString) {
+            try {
+              userInfo = JSON.parse(userInfoString);
+            } catch (e) {
+              console.error('解析 localStorage 中的 userInfo 失败', e);
+            }
+          }
+          localStorage.setItem('userInfo', JSON.stringify({ ...userInfo, avatarURL: newAvatarUrl }));
+          
+          message.success('头像上传成功！');
+          cropperModalVisible.value = false; // 上传成功后关闭裁剪弹窗
+        } else {
+          message.error(response.data?.message || '上传失败，请重试');
         }
+      } catch (error) {
+        console.error('上传失败:', error);
+        message.error('上传失败，请检查网络或稍后重试！');
+      } finally {
+        uploading.value = false;
       }
-      localStorage.setItem('userInfo', JSON.stringify({ ...userInfo, avatarURL: newAvatarUrl }));
-      
-      message.success('头像上传成功！');
-      changeAvatarModalVisible.value = false; // 上传成功后关闭弹窗
       
     } else {
-      message.error(response.data?.message || '上传失败，请重试');
+      message.error('裁剪失败，请重试');
+      uploading.value = false;
     }
-  } catch (error) {
-    console.error('上传失败:', error);
-    message.error('上传失败，请检查网络或稍后重试！');
-  } finally {
-    uploading.value = false;
-    pendingFile.value = null; // 清除暂存的文件
-  }
+  }, originalFileType.value, 0.9); // 第二个参数是 MIME type，第三个参数是图片质量 (0-1)
 };
 
-// 暴露给模板使用
-defineExpose({
-  changeAvatarModalVisible,
-  imageUrl
-});
+// 裁剪模态框取消事件
+const handleCropCancel = () => {
+  cropperModalVisible.value = false;
+  cropperImgSrc.value = ''; // 清空图片源
+  originalFileType.value = ''; // 清空文件类型
+};
 </script>
 
 <style scoped>
@@ -423,6 +501,22 @@ defineExpose({
 .ant-upload-select-picture-card .ant-upload-text {
   margin-top: 8px;
   color: #666;
+}
+
+.upload-tip {
+  text-align: center;
+  color: #999;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+/* 裁剪容器样式 */
+.cropper-container {
+  max-width: 100%;
+  height: 300px; /* 给裁剪容器一个固定高度，防止图片过大撑开 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* 响应式设计 */

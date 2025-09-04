@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -25,6 +26,10 @@ func NewAccountService() (*AccountService, error) {
 
 // 用户注册
 func (s *AccountService) Register(req *model.RegisterRequest) error {
+	// 只允许直接注册创作者身份
+	if req.Org[0] != 2 || len(req.Org) > 1 {
+		return fmt.Errorf("只允许直接注册创作者身份")
+	}
 	// 检查用户名是否已存在
 	var existingUser model.User
 	err := s.db.Where("username = ?", req.Username).First(&existingUser).Error
@@ -45,7 +50,7 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 	user := &model.User{
 		Username:     req.Username,
 		Email:        req.Email,
-		AvatarURL:    model.DefaultAvatarURL,
+		AvatarURL:    model.DefaultImageBaseURL + "/" + model.DefaultImageName,
 		PasswordHash: string(passwordHash),
 		Org:          req.Org,
 	}
@@ -104,7 +109,7 @@ func (s *AccountService) Logout(tokenString string) error {
 }
 
 // 根据用户ID获取用户信息
-func (s *AccountService) GetUserByID(userID uint) (*model.User, error) {
+func (s *AccountService) GetUserByID(userID int) (*model.User, error) {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
@@ -117,7 +122,7 @@ func (s *AccountService) GetUserByID(userID uint) (*model.User, error) {
 }
 
 // 更新用户信息
-func (s *AccountService) UpdateUser(userID uint, updates map[string]interface{}) error {
+func (s *AccountService) UpdateUser(userID int, updates map[string]interface{}) error {
 	// 检查用户是否存在
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
@@ -151,7 +156,7 @@ func (s *AccountService) UpdateUser(userID uint, updates map[string]interface{})
 }
 
 // 根据用户ID获取头像URL
-func (s *AccountService) GetAvatarById(userID uint) (string, error) {
+func (s *AccountService) GetAvatarById(userID int) (string, error) {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
@@ -164,7 +169,7 @@ func (s *AccountService) GetAvatarById(userID uint) (string, error) {
 }
 
 // 更新头像
-func (s *AccountService) UpdateAvatar(userID uint, newAvatarURL string) (string, error) {
+func (s *AccountService) UpdateAvatar(userID int, newAvatarName string) (string, error) {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {
@@ -173,12 +178,28 @@ func (s *AccountService) UpdateAvatar(userID uint, newAvatarURL string) (string,
 		}
 		return "", fmt.Errorf("查询用户失败：%v", err)
 	}
-	user.AvatarURL = newAvatarURL
+	user.AvatarURL = model.DefaultImageBaseURL + "/" + newAvatarName
 	err = s.db.Save(&user).Error
 	if err != nil {
 		return "", fmt.Errorf("更新头像失败：%v", err)
 	}
 	return user.AvatarURL, nil
+}
+
+// 更新组织
+
+func (s *AccountService) UpdateOrg(userID int, org pq.Int32Array) error {
+	var user model.User
+	err := s.db.Where("id = ?", userID).First(&user).Error
+	if err != nil {
+		return fmt.Errorf("查询用户失败：%v", err)
+	}
+	user.Org = org
+	err = s.db.Save(&user).Error
+	if err != nil {
+		return fmt.Errorf("更新组织失败：%v", err)
+	}
+	return nil
 }
 
 // 辅助方法
@@ -203,7 +224,7 @@ func (s *AccountService) generateJWT(user *model.User) (string, error) {
 }
 
 // saveToken 保存令牌
-func (s *AccountService) saveToken(userID uint, token string) error {
+func (s *AccountService) saveToken(userID int, token string) error {
 	tokenRecord := &model.Token{
 		Token:     token,
 		UserID:    userID,

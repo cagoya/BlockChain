@@ -32,6 +32,8 @@ github.com/golang-jwt/jwt/v4 v4.5.2/go.mod h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hyperledger/fabric-gateway v1.7.0 h1:bd1quU8qYPYqYO69m1tPIDSjB+D+u/rBJfE1eWFcpjY=
 github.com/hyperledger/fabric-gateway v1.7.0/go.mod h1:TItDGnq71eJcgz5TW+m5Sq3kWGp0AEI1HPCNxj0Eu7k=
 github.com/hyperledger/fabric-protos-go-apiv2 v0.3.4 h1:YJrd+gMaeY0/vsN0aS0QkEKTivGoUnSRIXxGJ7KI+Pc=
