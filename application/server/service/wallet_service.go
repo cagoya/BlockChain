@@ -59,6 +59,19 @@ func (s *WalletService) Transfer(senderID int, recipientID int, amount int, org 
 	return nil
 }
 
+func (s *WalletService) MintToken(accountID int, amount int, org int) error {
+	orgName, err := model.GetOrg(org)
+	if err != nil {
+		return fmt.Errorf("获取组织失败：%s", err)
+	}
+	contract := fabric.GetContract(orgName)
+	_, err = contract.SubmitTransaction("MintToken", fmt.Sprintf("%d", accountID), fmt.Sprintf("%d", amount))
+	if err != nil {
+		return fmt.Errorf("铸币失败：%s", fabric.ExtractErrorMessage(err))
+	}
+	return nil
+}
+
 func (s *WalletService) GetTransferBySenderID(senderID int, org int) ([]model.Transfer, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {

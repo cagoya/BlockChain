@@ -579,6 +579,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if asset.OwnerId == newOwnerId {
 		return fmt.Errorf("新旧主人不能相同")
 	}
+	oldOwnerId := asset.OwnerId
 	asset.OwnerId = newOwnerId
 	// 删除旧的记录
 	err = ctx.GetStub().DelState(key1)
@@ -601,7 +602,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	key3, err := s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", asset.OwnerId), id})
+	key3, err := s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", oldOwnerId), id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -610,7 +611,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("删除旧的所有权记录失败：%v", err)
 	}
 	// 重新构造键，因为所有者变了
-	key3, err = s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", asset.OwnerId), id})
+	key3, err = s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", newOwnerId), id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}

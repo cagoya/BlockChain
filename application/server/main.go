@@ -83,6 +83,7 @@ func main() {
 		wallet.POST("/create", walletHandler.CreateAccount)
 		wallet.GET("/balance", walletHandler.GetBlance)
 		wallet.POST("/transfer", walletHandler.Transfer)
+		wallet.POST("/mintToken", walletHandler.MintToken)
 		wallet.GET("/transferBySenderID", walletHandler.GetTransferBySenderID)
 		wallet.GET("/transferByRecipientID", walletHandler.GetTransferByRecipientID)
 		wallet.POST("/withHoldAccount", walletHandler.WithHoldAccount)

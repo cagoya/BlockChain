@@ -34,3 +34,8 @@ type WithHoldingRequest struct {
 	ListingID string `json:"listingId"` // 预扣款商品ID
 	Amount    int    `json:"amount"`    // 预扣款金额
 }
+
+type MintTokenRequest struct {
+	AccountID int `json:"accountId"` // 铸币账号ID
+	Amount    int `json:"amount"`    // 铸币金额
+}

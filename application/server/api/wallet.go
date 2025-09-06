@@ -81,6 +81,29 @@ func (h *WalletHandler) Transfer(c *gin.Context) {
 	utils.Success(c, "转账成功")
 }
 
+func (h *WalletHandler) MintToken(c *gin.Context) {
+	org, exists := c.Get("org")
+	if !exists {
+		utils.ServerError(c, "组织信息获取失败")
+		return
+	}
+	if org.(int) != 3 {
+		utils.ServerError(c, "只有金融组织可以铸币")
+		return
+	}
+	var mintTokenRequest model.MintTokenRequest
+	if err := c.ShouldBindJSON(&mintTokenRequest); err != nil {
+		utils.BadRequest(c, err.Error())
+		return
+	}
+	err := h.walletService.MintToken(mintTokenRequest.AccountID, mintTokenRequest.Amount, org.(int))
+	if err != nil {
+		utils.ServerError(c, err.Error())
+		return
+	}
+	utils.Success(c, "铸币成功")
+}
+
 func (h *WalletHandler) GetTransferBySenderID(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
