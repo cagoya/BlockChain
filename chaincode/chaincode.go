@@ -561,7 +561,7 @@ func (s *SmartContract) GetAssetByOwnerID(ctx contractapi.TransactionContextInte
 }
 
 // 转移 NFT 的所有权
-func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, newOwnerId int, timeStamp time.Time) error {
+func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, newOwnerId int, userId int, timeStamp time.Time) error {
 	var asset Asset
 	//三份记录都需要修改
 	key1, err := s.getCompositeKey(ctx, ASSET_KEY1, []string{id})
@@ -571,6 +571,10 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	err = s.getState(ctx, key1, &asset)
 	if err != nil {
 		return fmt.Errorf("查询 NFT 失败：%v", err)
+	}
+	// 确保转移请求是所有者发起的
+	if asset.AuthorId != userId {
+		return fmt.Errorf("只有 NFT 的所有者可以转移所有权")
 	}
 	if asset.OwnerId == newOwnerId {
 		return fmt.Errorf("新旧主人不能相同")

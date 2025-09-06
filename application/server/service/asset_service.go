@@ -97,13 +97,13 @@ func (s *AssetService) GetAssetByOwnerID(ownerId int, org int) ([]model.Asset, e
 	return assets, nil
 }
 
-func (s *AssetService) TransferAsset(id string, newOwnerId int, org int) error {
+func (s *AssetService) TransferAsset(id string, newOwnerId int, userID int, org int) error {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
 		return fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	_, err = contract.SubmitTransaction("TransferAsset", id, fmt.Sprintf("%d", newOwnerId), time.Now().Format(time.RFC3339))
+	_, err = contract.SubmitTransaction("TransferAsset", id, fmt.Sprintf("%d", newOwnerId), fmt.Sprintf("%d", userID), time.Now().Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("转移NFT失败：%s", fabric.ExtractErrorMessage(err))
 	}

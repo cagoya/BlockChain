@@ -22,9 +22,18 @@ func NewAssetHandler() *AssetHandler {
 }
 
 func (h *AssetHandler) CreateAsset(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
 	org, exists := c.Get("org")
 	if !exists {
 		utils.ServerError(c, "组织信息获取失败")
+		return
+	}
+	if org.(int) != 2 {
+		utils.ServerError(c, "只有属于NFT创建者组织的用户可以上传NFT")
 		return
 	}
 	// 为了保证原子性，图片必须与资产信息一起提交
@@ -32,11 +41,6 @@ func (h *AssetHandler) CreateAsset(c *gin.Context) {
 	// 参数就使用 PostForm 获取
 	name := c.PostForm("name")
 	if name == "" {
-		utils.BadRequest(c, "请求参数错误")
-		return
-	}
-	authorId, err := strconv.Atoi(c.PostForm("authorId"))
-	if err != nil {
 		utils.BadRequest(c, "请求参数错误")
 		return
 	}
@@ -55,8 +59,8 @@ func (h *AssetHandler) CreateAsset(c *gin.Context) {
 		utils.ServerError(c, fmt.Sprintf("保存图片失败：%s", err.Error()))
 		return
 	}
-	// 创建时默认所有者是作者本人
-	asset, err := h.assetService.CreateAsset(name, imageName, authorId, authorId, description, org.(int))
+	// 创建时默认所有者是作者本人且是上传者
+	asset, err := h.assetService.CreateAsset(name, imageName, userID.(int), userID.(int), description, org.(int))
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return
@@ -118,6 +122,11 @@ func (h *AssetHandler) GetAssetByOwnerID(c *gin.Context) {
 }
 
 func (h *AssetHandler) TransferAsset(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
 	org, exists := c.Get("org")
 	if !exists {
 		utils.ServerError(c, "组织信息获取失败")
@@ -128,7 +137,7 @@ func (h *AssetHandler) TransferAsset(c *gin.Context) {
 		utils.BadRequest(c, "请求参数错误")
 		return
 	}
-	err := h.assetService.TransferAsset(req.ID, req.NewOwnerId, org.(int))
+	err := h.assetService.TransferAsset(req.ID, req.NewOwnerId, userID.(int), org.(int))
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return

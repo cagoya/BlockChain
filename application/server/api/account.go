@@ -206,7 +206,7 @@ func (h *AccountHandler) UpdateOrg(c *gin.Context) {
 		return
 	}
 	if org.(int) != 1 {
-		utils.ServerError(c, "用户不属于组织")
+		utils.ServerError(c, "只有平台管理员可以更新用户组织")
 		return
 	}
 	var req model.UpdateOrgRequest
