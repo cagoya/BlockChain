@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -52,4 +53,17 @@ type RegisterRequest struct {
 type UpdateOrgRequest struct {
 	UserID int `json:"userID"`
 	Org    int `json:"org"`
+}
+
+// 辅助函数：获取对应组织
+func GetOrg(org int) (string, error) {
+	switch org {
+	case 1:
+		return "org1", nil
+	case 2:
+		return "org2", nil
+	case 3:
+		return "org3", nil
+	}
+	return "", fmt.Errorf("组织不存在")
 }

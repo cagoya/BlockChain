@@ -16,11 +16,17 @@ type SmartContract struct {
 }
 
 // 常量，用于构建复合键
+// 为了保证不重复，每个不同的键值对都要有自己的前缀
 const (
-	ACCOUNT_KEY      = "account"
-	TRANSFER_KEY     = "transfer"
-	WITH_HOLDING_KEY = "withHolding"
-	ASSET_KEY        = "asset"
+	ACCOUNT_KEY       = "account"
+	TRANSFER_KEY      = "transfer"
+	SENDER_KEY        = "sender"
+	RECIPIENT_KEY     = "recipient"
+	WITH_HOLDING_KEY1 = "withHolding1"
+	WITH_HOLDING_KEY2 = "withHolding2"
+	ASSET_KEY1        = "asset1"
+	ASSET_KEY2        = "asset2"
+	ASSET_KEY3        = "asset3"
 )
 
 // Account 账户信息
@@ -219,7 +225,7 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 	}
 	// 转账记录需要存两份，一份主键是发送方，一份主键是接收方
 	// 创建复合键(SenderID, ID)
-	key3, err := s.getCompositeKey(ctx, TRANSFER_KEY, []string{fmt.Sprintf("%d", transfer.SenderID), transfer.ID})
+	key3, err := s.getCompositeKey(ctx, SENDER_KEY, []string{fmt.Sprintf("%d", transfer.SenderID), transfer.ID})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -228,7 +234,7 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 		return fmt.Errorf("保存转账记录失败：%v", err)
 	}
 	// 创建复合键(RecipientID, ID)
-	key4, err := s.getCompositeKey(ctx, TRANSFER_KEY, []string{fmt.Sprintf("%d", transfer.RecipientID), transfer.ID})
+	key4, err := s.getCompositeKey(ctx, RECIPIENT_KEY, []string{fmt.Sprintf("%d", transfer.RecipientID), transfer.ID})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -239,10 +245,36 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 	return nil
 }
 
+// 铸币，暂时不存记录
+func (s *SmartContract) MintToken(ctx contractapi.TransactionContextInterface, accountID int, amount int) error {
+	if amount <= 0 {
+		return fmt.Errorf("铸币金额必须大于 0")
+	}
+	var account Account
+	key, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", accountID)})
+	if err != nil {
+		return fmt.Errorf("创建复合键失败：%v", err)
+	}
+	err = s.getState(ctx, key, &account)
+	if err != nil {
+		return fmt.Errorf("查询账户失败：%v", err)
+	}
+	account.Balance += amount
+	err = ctx.GetStub().DelState(key)
+	if err != nil {
+		return fmt.Errorf("移除旧的记录失败：%v", err)
+	}
+	err = s.putState(ctx, key, account)
+	if err != nil {
+		return fmt.Errorf("更新账户余额失败：%v", err)
+	}
+	return nil
+}
+
 // 查询某个账户的转账转出记录
 func (s *SmartContract) GetTransferBySenderID(ctx contractapi.TransactionContextInterface, senderID int) ([]Transfer, error) {
 	var transfers []Transfer
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(TRANSFER_KEY, []string{fmt.Sprintf("%d", senderID)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(SENDER_KEY, []string{fmt.Sprintf("%d", senderID)})
 	if err != nil {
 		return nil, fmt.Errorf("查询转账记录失败：%v", err)
 	}
@@ -264,7 +296,7 @@ func (s *SmartContract) GetTransferBySenderID(ctx contractapi.TransactionContext
 // 查询某个账户的转账转入记录
 func (s *SmartContract) GetTransferByRecipientID(ctx contractapi.TransactionContextInterface, recipientID int) ([]Transfer, error) {
 	var transfers []Transfer
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(TRANSFER_KEY, []string{fmt.Sprintf("%d", recipientID)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(RECIPIENT_KEY, []string{fmt.Sprintf("%d", recipientID)})
 	if err != nil {
 		return nil, fmt.Errorf("查询转账记录失败：%v", err)
 	}
@@ -287,7 +319,7 @@ func (s *SmartContract) GetTransferByRecipientID(ctx contractapi.TransactionCont
 func (s *SmartContract) WithHoldAccount(ctx contractapi.TransactionContextInterface, id string, accountId int, listingID string, amount int, timeStamp time.Time) error {
 	// 检查 ammount 是否大于 0
 	if amount <= 0 {
-		return fmt.Errorf("冻结金额必须大于 0")
+		return fmt.Errorf("预扣款金额必须大于 0")
 	}
 	var account Account
 	key1, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", accountId)})
@@ -316,7 +348,7 @@ func (s *SmartContract) WithHoldAccount(ctx contractapi.TransactionContextInterf
 		TimeStamp: timeStamp,
 	}
 	// 这个也需要存两份，一份主键是 AccountID，一份主键是ListingID
-	key2, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY, []string{fmt.Sprintf("%d", withHolding.AccountID), withHolding.ID})
+	key2, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY1, []string{fmt.Sprintf("%d", withHolding.AccountID), withHolding.ID})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -324,7 +356,7 @@ func (s *SmartContract) WithHoldAccount(ctx contractapi.TransactionContextInterf
 	if err != nil {
 		return fmt.Errorf("保存预扣款记录失败：%v", err)
 	}
-	key3, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY, []string{withHolding.ListingID, withHolding.ID})
+	key3, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY2, []string{withHolding.ListingID, withHolding.ID})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -338,7 +370,7 @@ func (s *SmartContract) WithHoldAccount(ctx contractapi.TransactionContextInterf
 // 查询某个账户的预扣款记录
 func (s *SmartContract) GetWithHoldingByAccountID(ctx contractapi.TransactionContextInterface, accountID int) ([]WithHolding, error) {
 	var withHoldings []WithHolding
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(WITH_HOLDING_KEY, []string{fmt.Sprintf("%d", accountID)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(WITH_HOLDING_KEY1, []string{fmt.Sprintf("%d", accountID)})
 	if err != nil {
 		return nil, fmt.Errorf("查询预扣款记录失败：%v", err)
 	}
@@ -360,7 +392,7 @@ func (s *SmartContract) GetWithHoldingByAccountID(ctx contractapi.TransactionCon
 // 查询某个商品的预扣款记录
 func (s *SmartContract) GetWithHoldingByListingID(ctx contractapi.TransactionContextInterface, listingID string) ([]WithHolding, error) {
 	var withHoldings []WithHolding
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(WITH_HOLDING_KEY, []string{listingID})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(WITH_HOLDING_KEY2, []string{listingID})
 	if err != nil {
 		return nil, fmt.Errorf("查询预扣款记录失败：%v", err)
 	}
@@ -379,54 +411,50 @@ func (s *SmartContract) GetWithHoldingByListingID(ctx contractapi.TransactionCon
 	return withHoldings, nil
 }
 
-// 完成扣款，只真正扣除指定 accountID 的余额，其余账户都返还余额
-func (s *SmartContract) CompleteWithHolding(ctx contractapi.TransactionContextInterface, accountID int, listingID string, timeStamp time.Time) error {
+// 清除所有预扣款
+func (s *SmartContract) ClearWithHolding(ctx contractapi.TransactionContextInterface, listingID string) error {
 	// 查询该商品的扣款记录
 	withHoldings, err := s.GetWithHoldingByListingID(ctx, listingID)
 	if err != nil {
 		return fmt.Errorf("查询扣款记录失败：%v", err)
 	}
+	if len(withHoldings) == 0 {
+		return fmt.Errorf("没有相关商品的扣款记录")
+	}
 	for _, withHolding := range withHoldings {
-		// 非成交账号应该移除预扣款
-		if withHolding.AccountID != accountID {
-			var account Account
-			key, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", accountID)})
-			if err != nil {
-				return fmt.Errorf("创建复合键失败：%v", err)
-			}
-			err = s.getState(ctx, key, &account)
-			if err != nil {
-				return fmt.Errorf("查询余额失败：%v", err)
-			}
-			account.Balance += withHolding.Amount
-			// 移除旧的记录
-			err = ctx.GetStub().DelState(key)
-			if err != nil {
-				return fmt.Errorf("移除余额记录失败：%v", err)
-			}
-			// 添加新的记录
-			err = s.putState(ctx, key, account)
-			if err != nil {
-				return fmt.Errorf("更新余额失败：%v", err)
-			}
-		}
-		// TODO：成交账号应该完成交易
-		// else{...}
-
-		// 无论是否成交都删除扣款记录
-		key, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY, []string{fmt.Sprintf("%d", withHolding.AccountID), withHolding.ID})
+		var account Account
+		key1, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", withHolding.AccountID)})
 		if err != nil {
 			return fmt.Errorf("创建复合键失败：%v", err)
 		}
-		err = ctx.GetStub().DelState(key)
+		err = s.getState(ctx, key1, &account)
+		if err != nil {
+			return fmt.Errorf("查询余额失败：%v", err)
+		}
+		account.Balance += withHolding.Amount
+		// 移除旧的记录
+		err = ctx.GetStub().DelState(key1)
+		if err != nil {
+			return fmt.Errorf("移除余额记录失败：%v", err)
+		}
+		// 添加新的记录
+		err = s.putState(ctx, key1, account)
+		if err != nil {
+			return fmt.Errorf("更新余额失败：%v", err)
+		}
+		key2, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY1, []string{fmt.Sprintf("%d", withHolding.AccountID), withHolding.ID})
+		if err != nil {
+			return fmt.Errorf("创建复合键失败：%v", err)
+		}
+		err = ctx.GetStub().DelState(key2)
 		if err != nil {
 			return fmt.Errorf("删除扣款记录失败：%v", err)
 		}
-		key, err = s.getCompositeKey(ctx, WITH_HOLDING_KEY, []string{withHolding.ListingID, withHolding.ID})
+		key3, err := s.getCompositeKey(ctx, WITH_HOLDING_KEY2, []string{withHolding.ListingID, withHolding.ID})
 		if err != nil {
 			return fmt.Errorf("创建复合键失败：%v", err)
 		}
-		err = ctx.GetStub().DelState(key)
+		err = ctx.GetStub().DelState(key3)
 		if err != nil {
 			return fmt.Errorf("删除扣款记录失败：%v", err)
 		}
@@ -436,7 +464,7 @@ func (s *SmartContract) CompleteWithHolding(ctx contractapi.TransactionContextIn
 
 // 创建 NFT
 func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, id string, imageName string,
-	name string, authorId int, ownerId int, description string, rarity string, timeStamp time.Time) error {
+	name string, authorId int, ownerId int, description string, timeStamp time.Time) (Asset, error) {
 	asset := Asset{
 		ID:          id,
 		ImageName:   imageName,
@@ -444,41 +472,40 @@ func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface,
 		AuthorId:    authorId,
 		OwnerId:     ownerId,
 		Description: description,
-		Rarity:      rarity,
 		TimeStamp:   timeStamp,
 	}
 	// 这里存三份，一份主键是 ID，一份主键是 AuthorId，一份主键是 OwnerId
-	key1, err := s.getCompositeKey(ctx, ASSET_KEY, []string{id})
+	key1, err := s.getCompositeKey(ctx, ASSET_KEY1, []string{id})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败：%v", err)
+		return Asset{}, fmt.Errorf("创建复合键失败：%v", err)
 	}
 	err = s.putState(ctx, key1, asset)
 	if err != nil {
-		return fmt.Errorf("保存 NFT 失败：%v", err)
+		return Asset{}, fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	key2, err := s.getCompositeKey(ctx, ASSET_KEY, []string{fmt.Sprintf("%d", authorId), id})
+	key2, err := s.getCompositeKey(ctx, ASSET_KEY2, []string{fmt.Sprintf("%d", authorId), id})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败：%v", err)
+		return Asset{}, fmt.Errorf("创建复合键失败：%v", err)
 	}
 	err = s.putState(ctx, key2, asset)
 	if err != nil {
-		return fmt.Errorf("保存 NFT 失败：%v", err)
+		return Asset{}, fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	key3, err := s.getCompositeKey(ctx, ASSET_KEY, []string{fmt.Sprintf("%d", ownerId), id})
+	key3, err := s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", ownerId), id})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败：%v", err)
+		return Asset{}, fmt.Errorf("创建复合键失败：%v", err)
 	}
 	err = s.putState(ctx, key3, asset)
 	if err != nil {
-		return fmt.Errorf("保存 NFT 失败：%v", err)
+		return Asset{}, fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	return nil
+	return asset, nil
 }
 
 // 根据ID查询某个NFT
 func (s *SmartContract) GetAssetByID(ctx contractapi.TransactionContextInterface, id string) (Asset, error) {
 	var asset Asset
-	key, err := s.getCompositeKey(ctx, ASSET_KEY, []string{id})
+	key, err := s.getCompositeKey(ctx, ASSET_KEY1, []string{id})
 	if err != nil {
 		return Asset{}, fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -492,7 +519,7 @@ func (s *SmartContract) GetAssetByID(ctx contractapi.TransactionContextInterface
 // 根据AuthorId查询某个NFT
 func (s *SmartContract) GetAssetByAuthorID(ctx contractapi.TransactionContextInterface, authorId int) ([]Asset, error) {
 	var assets []Asset
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(ASSET_KEY, []string{fmt.Sprintf("%d", authorId)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(ASSET_KEY2, []string{fmt.Sprintf("%d", authorId)})
 	if err != nil {
 		return nil, fmt.Errorf("查询 NFT 失败：%v", err)
 	}
@@ -514,7 +541,7 @@ func (s *SmartContract) GetAssetByAuthorID(ctx contractapi.TransactionContextInt
 // 根据OwnerId查询某个NFT
 func (s *SmartContract) GetAssetByOwnerID(ctx contractapi.TransactionContextInterface, ownerId int) ([]Asset, error) {
 	var assets []Asset
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(ASSET_KEY, []string{fmt.Sprintf("%d", ownerId)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(ASSET_KEY3, []string{fmt.Sprintf("%d", ownerId)})
 	if err != nil {
 		return nil, fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -534,10 +561,10 @@ func (s *SmartContract) GetAssetByOwnerID(ctx contractapi.TransactionContextInte
 }
 
 // 转移 NFT 的所有权
-func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, oldOwnerId int, newOwnerId int, timeStamp time.Time) error {
+func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, newOwnerId int, timeStamp time.Time) error {
 	var asset Asset
 	//三份记录都需要修改
-	key1, err := s.getCompositeKey(ctx, ASSET_KEY, []string{id})
+	key1, err := s.getCompositeKey(ctx, ASSET_KEY1, []string{id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -545,8 +572,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("查询 NFT 失败：%v", err)
 	}
-	// 检查新旧主人是否相同
-	if oldOwnerId == newOwnerId {
+	if asset.OwnerId == newOwnerId {
 		return fmt.Errorf("新旧主人不能相同")
 	}
 	asset.OwnerId = newOwnerId
@@ -559,7 +585,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	key2, err := s.getCompositeKey(ctx, ASSET_KEY, []string{fmt.Sprintf("%d", asset.AuthorId), id})
+	key2, err := s.getCompositeKey(ctx, ASSET_KEY2, []string{fmt.Sprintf("%d", asset.AuthorId), id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -571,7 +597,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("保存 NFT 失败：%v", err)
 	}
-	key3, err := s.getCompositeKey(ctx, ASSET_KEY, []string{fmt.Sprintf("%d", oldOwnerId), id})
+	key3, err := s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", asset.OwnerId), id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -579,7 +605,8 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("删除旧的所有权记录失败：%v", err)
 	}
-	key3, err = s.getCompositeKey(ctx, ASSET_KEY, []string{fmt.Sprintf("%d", asset.OwnerId), id})
+	// 重新构造键，因为所有者变了
+	key3, err = s.getCompositeKey(ctx, ASSET_KEY3, []string{fmt.Sprintf("%d", asset.OwnerId), id})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}

@@ -21,3 +21,16 @@ type TransferRequest struct {
 	RecipientID int `json:"recipientId"` // 转入钱包ID
 	Amount      int `json:"amount"`      // 转账金额
 }
+
+type WithHolding struct {
+	ID        string    `json:"id"`        // 预扣款ID
+	AccountID int       `json:"accountId"` // 预扣款账号ID
+	ListingID string    `json:"listingId"` // 预扣款商品ID
+	Amount    int       `json:"amount"`    // 预扣款金额
+	Time      time.Time `json:"time"`      // 预扣款时间
+}
+
+type WithHoldingRequest struct {
+	ListingID string `json:"listingId"` // 预扣款商品ID
+	Amount    int    `json:"amount"`    // 预扣款金额
+}
