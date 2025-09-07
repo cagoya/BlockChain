@@ -39,11 +39,12 @@
             <input type="text" placeholder="用户名" v-model="username" autocomplete="username">
             <div class="line"></div>
             <input type="password" placeholder="密码" v-model="password" autocomplete="current-password">
+            <div class="line"></div>
             <button type="submit">登录</button>
           </form>
         </section>
         <footer>
-          <p @click="toRegister">还没有账号?</p>
+          <p @click="toRegister">还没有账号，去注册</p>
         </footer>
       </section>
     </section>

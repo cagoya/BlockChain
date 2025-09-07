@@ -1,5 +1,3 @@
-version: '2.1'
-
 networks:
   fabric_togettoyou_network:
     name: fabric_togettoyou_network

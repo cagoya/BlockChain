@@ -29,6 +29,10 @@ const router = createRouter({
       component: () => import('../views/Test.vue'),
     },
     {
+      path: '/wallet',
+      component: () => import('../views/wallet.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径
       component: () => import('../views/404.vue'),
     }

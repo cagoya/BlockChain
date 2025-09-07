@@ -31,24 +31,24 @@
     <section class="container">
       <section class="wrapper">
         <header>
-          <h1>创建账户</h1>
+          <h1>NFT 交易系统</h1>
+          <p>用户注册</p>
         </header>
         <section class="main-content">
           <form @submit.prevent="handleRegister">
             <input type="text" placeholder="用户名" v-model="username">
             <div class="line"></div>
             <input type="email" placeholder="邮箱" v-model="email">
-            <div class="validation-text" :class="{ 'error': !isEmailValid && email.length > 0 }">
-              {{ !isEmailValid && email.length > 0 ? '请输入有效的邮箱地址' : '' }}
-            </div>
             <div class="line"></div>
+            <div v-if="!isEmailValid && email.length > 0" class="validation-text error">
+              请输入有效的邮箱地址
+            </div>
             <input type="password" placeholder="密码" v-model="password">
+            <div class="line"></div>
             <div class="validation-text" :class="{ 'weak': passwordStrength === '弱', 'medium': passwordStrength === '中等', 'strong': passwordStrength === '强' }" v-if="password.length > 0">
               密码强度: {{ passwordStrength }}
             </div>
-            <div class="line"></div>
             <div class="checkbox-group">
-              <label>组织:</label>
               <div class="checkbox-container">
                 <div v-for="org in organizations" :key="org" class="checkbox-item">
                   <input type="checkbox" :id="org" :value="org" v-model="selectedOrgs">
@@ -59,11 +59,30 @@
                 {{ !isOrgValid ? '请至少选择一个组织' : '' }}
               </div>
             </div>
+            <div class="terms-agreement">
+              <div class="checkbox-item"> 
+                <input 
+                  type="checkbox" 
+                  id="terms" 
+                  v-model="agreeTerms" 
+                  class="common-checkbox" 
+                >
+                <label for="terms" class="common-label"> 
+                  <span class="terms-text">
+                    我同意<a href="#" class="terms-link">服务条款</a>和<a href="#" class="terms-link">隐私政策</a>
+                  </span>
+                </label>
+              </div>
+              <!-- 新增条款验证提示 -->
+              <div class="validation-text" :class="{ 'error': !isTermsValid }">
+                {{ !isTermsValid ? '请同意服务条款和隐私政策' : '' }}
+              </div>
+            </div>
             <button type="submit" :disabled="!isFormValid">注册</button>
           </form>
         </section>
         <footer>
-          <p @click="toLogin">已经有账号了?</p>
+          <p @click="toLogin">已经有账号了，去登录</p>
         </footer>
       </section>
     </section>
@@ -86,6 +105,7 @@ const email = ref('');
 const password = ref('');
 const organizations = ['平台运营方', 'NFT创作者', '金融机构'];
 const selectedOrgs = ref<string[]>([]);
+const agreeTerms = ref(false);
 
 // 邮箱格式验证
 const isEmailValid = computed(() => {
@@ -119,13 +139,19 @@ const isOrgValid = computed(() => {
   return selectedOrgs.value.length > 0;
 });
 
+// 条款同意验证
+const isTermsValid = computed(() => {
+  return agreeTerms.value;
+});
+
 // 表单整体验证
 const isFormValid = computed(() => {
   return username.value.length > 0 && 
          isEmailValid.value && 
          passwordStrength.value !== '弱' && 
          passwordStrength.value !== '输入密码...' &&
-         isOrgValid.value;
+         isOrgValid.value&&
+         isTermsValid.value;
 });
 
 // 组织转换关系
