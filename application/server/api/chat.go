@@ -93,6 +93,12 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		// 重置读取超时
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 
+		// 检查消息是否是自己发出的
+		if msg.SenderID != userID.(int) {
+			conn.WriteJSON(gin.H{"error": "消息发送者ID不正确"})
+			continue
+		}
+
 		// 根据RecipientID获取目标连接
 		receiverConn, ok := connManager.GetConn(msg.RecipientID)
 		if ok {
@@ -131,21 +137,43 @@ func (h *ChatHandler) GetChatSession(c *gin.Context) {
 }
 
 // 获取两位用户之间的所有聊天记录
+// 默认只允许查看本人的聊天记录
 func (h *ChatHandler) GetMessages(c *gin.Context) {
-	userID1, err := strconv.Atoi(c.Query("userID1"))
-	if err != nil {
-		utils.BadRequest(c, "用户ID1不能为空")
+	myID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	userID2, err := strconv.Atoi(c.Query("userID2"))
+	otherID, err := strconv.Atoi(c.Query("otherID"))
 	if err != nil {
-		utils.BadRequest(c, "用户ID2不能为空")
+		utils.BadRequest(c, "其它用户ID不能为空")
 		return
 	}
-	messages, err := h.chatService.GetMessages(userID1, userID2)
+	messages, err := h.chatService.GetMessages(myID.(int), otherID)
 	if err != nil {
 		utils.ServerError(c, "获取消息失败")
 		return
 	}
 	utils.Success(c, messages)
+}
+
+// 标记消息为已读，只允许标记自己接收到的消息
+func (h *ChatHandler) ReadMessages(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	var messageIDs []int
+	err := c.ShouldBindJSON(&messageIDs)
+	if err != nil {
+		utils.BadRequest(c, "消息ID不能为空")
+		return
+	}
+	err = h.chatService.ReadMessages(messageIDs, userID.(int))
+	if err != nil {
+		utils.ServerError(c, "标记消息为已读失败")
+		return
+	}
+	utils.Success(c, "标记消息为已读成功")
 }

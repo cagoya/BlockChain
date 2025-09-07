@@ -112,6 +112,7 @@ func main() {
 		chat.GET("/ws", chatHandler.SendMessage)
 		chat.GET("/getChatSession", chatHandler.GetChatSession)
 		chat.GET("/getMessages", chatHandler.GetMessages)
+		chat.POST("/readMessages", chatHandler.ReadMessages)
 	}
 
 	// 打印路由信息

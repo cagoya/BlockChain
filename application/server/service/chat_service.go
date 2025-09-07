@@ -78,3 +78,11 @@ func (s *ChatService) GetMessages(userID1 int, userID2 int) ([]model.Message, er
 	}
 	return messages, nil
 }
+
+func (s *ChatService) ReadMessages(messageIDs []int, userID int) error {
+	err := s.db.Model(&model.Message{}).Where("id IN (?) AND recipient_id = ?", messageIDs, userID).Update("has_read", true).Error
+	if err != nil {
+		return fmt.Errorf("标记消息为已读失败：%v", err)
+	}
+	return nil
+}
