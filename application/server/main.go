@@ -44,6 +44,10 @@ func main() {
 	accountHandler := api.NewAccountHandler()
 	walletHandler := api.NewWalletHandler()
 	assetHandler := api.NewAssetHandler()
+	chatHandler, err := api.NewChatHandler()
+	if err != nil {
+		log.Fatalf("创建聊天处理程序失败：%v", err)
+	}
 
 	// 创建JWT中间件
 	jwtMiddleware, err := middleware.NewJWTMiddleware()
@@ -100,6 +104,14 @@ func main() {
 		asset.GET("/getAssetByAuthorID", assetHandler.GetAssetByAuthorID)
 		asset.GET("/getAssetByOwnerID", assetHandler.GetAssetByOwnerID)
 		asset.POST("/transfer", assetHandler.TransferAsset)
+	}
+
+	// 聊天相关接口
+	chat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
+	{
+		chat.GET("/ws", chatHandler.SendMessage)
+		chat.GET("/getChatSession", chatHandler.GetChatSession)
+		chat.GET("/getMessages", chatHandler.GetMessages)
 	}
 
 	// 打印路由信息
