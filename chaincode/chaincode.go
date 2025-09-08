@@ -141,6 +141,12 @@ func (s *SmartContract) CreateAccount(ctx contractapi.TransactionContextInterfac
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
+	// 检查是否已经存在
+	var account Account
+	err = s.getState(ctx, key, &account)
+	if err == nil {
+		return fmt.Errorf("账户已存在")
+	}
 	// 初始赠送 100 代币
 	err = s.putState(ctx, key, Account{ID: id, Balance: 100})
 	if err != nil {
