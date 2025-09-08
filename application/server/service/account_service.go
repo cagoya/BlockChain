@@ -2,6 +2,7 @@ package service
 
 import (
 	"application/model"
+	"application/pkg/fabric"
 	"fmt"
 	"time"
 
@@ -59,6 +60,17 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 	err = s.db.Create(user).Error
 	if err != nil {
 		return fmt.Errorf("保存用户失败：%v", err)
+	}
+
+	// 创建钱包
+	orgName, err := model.GetOrg(user.Org)
+	if err != nil {
+		return fmt.Errorf("获取组织失败：%v", err)
+	}
+	contract := fabric.GetContract(orgName)
+	_, err = contract.SubmitTransaction("CreateAccount", fmt.Sprintf("%d", user.ID))
+	if err != nil {
+		return fmt.Errorf("钱包开通失败：%s", fabric.ExtractErrorMessage(err))
 	}
 
 	return nil
