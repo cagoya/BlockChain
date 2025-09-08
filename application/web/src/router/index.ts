@@ -33,7 +33,7 @@ const router = createRouter({
     },
     {
       path: '/wallet',
-      component: () => import('../views/wallet.vue'),
+      component: () => import('../views/Wallet.vue'),
     },
     {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径
@@ -43,7 +43,7 @@ const router = createRouter({
 })
 
 // 添加全局前置守卫，用于检查是否登录
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth) {
     // 检查本地存储中是否存在 token
     const token = localStorage.getItem('userToken');
