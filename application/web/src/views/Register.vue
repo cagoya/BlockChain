@@ -48,34 +48,29 @@
             <div class="validation-text" :class="{ 'weak': passwordStrength === '弱', 'medium': passwordStrength === '中等', 'strong': passwordStrength === '强' }" v-if="password.length > 0">
               密码强度: {{ passwordStrength }}
             </div>
-            <div class="checkbox-group">
-              <div class="checkbox-container">
-                <div v-for="org in organizations" :key="org" class="checkbox-item">
-                  <input type="checkbox" :id="org" :value="org" v-model="selectedOrgs">
-                  <label :for="org">{{ org }}</label>
-                </div>
-              </div>
-              <div class="validation-text" :class="{ 'error': !isOrgValid }">
-                {{ !isOrgValid ? '请至少选择一个组织' : '' }}
-              </div>
+            <div class="line"></div>
+            <input type="password" placeholder="确认密码" v-model="confirmPassword">
+            <div class="validation-text" :class="{ 'error': !isPasswordMatch && confirmPassword.length > 0 }" v-if="confirmPassword.length > 0">
+              {{ !isPasswordMatch ? '两次输入的密码不一致' : '密码匹配' }}
             </div>
-            <div class="terms-agreement">
-              <div class="checkbox-item"> 
-                <input 
-                  type="checkbox" 
-                  id="terms" 
-                  v-model="agreeTerms" 
-                  class="common-checkbox" 
+            <div class="line"></div>
+            <div class="organization-group">
+              <label>组织:</label>
+              <a-radio-group v-model:value="selectedOrg" @change="handleOrgChange">
+                <a-radio 
+                  v-for="org in organizations" 
+                  :key="org.value" 
+                  :value="org.value"
+                  :disabled="org.disabled"
                 >
-                <label for="terms" class="common-label"> 
-                  <span class="terms-text">
-                    我同意<a href="#" class="terms-link">服务条款</a>和<a href="#" class="terms-link">隐私政策</a>
-                  </span>
-                </label>
+                  {{ org.label }}
+                </a-radio>
+              </a-radio-group>
+              <div class="validation-text" :class="{ 'error': !isOrgValid }">
+                {{ !isOrgValid ? '请选择一个组织' : '' }}
               </div>
-              <!-- 新增条款验证提示 -->
-              <div class="validation-text" :class="{ 'error': !isTermsValid }">
-                {{ !isTermsValid ? '请同意服务条款和隐私政策' : '' }}
+              <div v-if="orgWarning" class="warning-text">
+                {{ orgWarning }}
               </div>
             </div>
             <button type="submit" :disabled="!isFormValid">注册</button>
@@ -91,11 +86,81 @@
 
 <style>
 @import '../assets/auth.css';
+
+.organization-group {
+  margin-bottom: 20px;
+}
+
+.organization-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #333;
+}
+
+.ant-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ant-radio-wrapper {
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.ant-radio-wrapper-disabled {
+  opacity: 0.6;
+}
+
+.warning-text {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.validation-text.error {
+  color: #ff4d4f;
+}
+
+.validation-text.weak {
+  color: #ff4d4f;
+}
+
+.validation-text.medium {
+  color: #faad14;
+}
+
+.validation-text.strong {
+  color: #52c41a;
+}
+
+.validation-text {
+  font-size: 12px;
+  margin-top: 5px;
+  transition: color 0.3s ease;
+}
 </style>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import axios from 'axios';
+import axios from '../utils/axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
 
@@ -103,9 +168,16 @@ import router from '../router';
 const username = ref('');
 const email = ref('');
 const password = ref('');
-const organizations = ['平台运营方', 'NFT创作者', '金融机构'];
-const selectedOrgs = ref<string[]>([]);
-const agreeTerms = ref(false);
+const confirmPassword = ref('');
+const selectedOrg = ref<number | null>(null);
+const orgWarning = ref('');
+
+// 组织选项配置
+const organizations = [
+  { label: '平台运营方', value: 1, disabled: true },
+  { label: 'NFT创作者', value: 2, disabled: false },
+  { label: '金融机构', value: 3, disabled: true }
+];
 
 // 邮箱格式验证
 const isEmailValid = computed(() => {
@@ -134,15 +206,26 @@ const passwordStrength = computed(() => {
   return '弱';
 });
 
-// 组织选择验证
-const isOrgValid = computed(() => {
-  return selectedOrgs.value.length > 0;
+// 密码匹配验证
+const isPasswordMatch = computed(() => {
+  return password.value === confirmPassword.value || confirmPassword.value.length === 0;
 });
 
-// 条款同意验证
-const isTermsValid = computed(() => {
-  return agreeTerms.value;
+// 组织选择验证
+const isOrgValid = computed(() => {
+  return selectedOrg.value !== null && selectedOrg.value === 2; // 只允许选择NFT创作者
 });
+
+// 组织选择处理函数
+const handleOrgChange = (e: any) => {
+  const value = e.target.value;
+  if (value === 1 || value === 3) {
+    orgWarning.value = '不支持选择该组织，请联系管理员';
+    selectedOrg.value = null; // 清空选择
+  } else {
+    orgWarning.value = '';
+  }
+};
 
 // 表单整体验证
 const isFormValid = computed(() => {
@@ -150,42 +233,31 @@ const isFormValid = computed(() => {
          isEmailValid.value && 
          passwordStrength.value !== '弱' && 
          passwordStrength.value !== '输入密码...' &&
-         isOrgValid.value&&
-         isTermsValid.value;
+         isPasswordMatch.value &&
+         confirmPassword.value.length > 0 &&
+         isOrgValid.value;
 });
-
-// 组织转换关系
-const organizationsMap = {
-  "平台运营方": 1,
-  "NFT创作者": 2,
-  "金融机构": 3,
-};
-
-// 转换函数
-const convertOrganizations = (selectedOrgs: string[]) => {
-  return selectedOrgs.map(org => organizationsMap[org as keyof typeof organizationsMap]);
-};
 
 // 注册处理函数
 const handleRegister = async () => {
   if (isFormValid.value) {
     try {
-    const response = await axios.post('http://localhost:8888/api/account/register', {
-      Username: username.value,
-      Email: email.value,
-      Password: password.value,
-      Org: convertOrganizations(selectedOrgs.value),
-    });
-    if (response.status === 200 && response.data.code === 200) {
-      message.success('注册成功！');
-      router.push('/login');
-    } else {
-      message.error(`${response.data.message}`);
+      const response = await axios.post('/api/account/register', {
+        Username: username.value,
+        Email: email.value,
+        Password: password.value,
+        Org: selectedOrg.value,
+      });
+      if (response.status === 200 && response.data.code === 200) {
+        message.success('注册成功！');
+        router.push('/login');
+      } else {
+        message.error(`${response.data.message}`);
+      }
+    } catch (error) {
+      message.error('注册请求失败，请检查网络连接。');
+      console.error(error);
     }
-  } catch (error) {
-    message.error('注册请求失败，请检查网络连接。');
-    console.error(error);
-  }
   } else {
     message.error('表单验证失败，无法注册。');
   }

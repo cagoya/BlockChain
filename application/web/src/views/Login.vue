@@ -57,7 +57,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from 'axios';
+import axios from '../utils/axios';
+import { isAxiosError } from 'axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
 
@@ -74,7 +75,7 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://localhost:8888/api/account/login', {
+    const response = await axios.post('/api/account/login', {
       Username: username.value,
       Password: password.value,
     });
@@ -83,9 +84,6 @@ const handleLogin = async () => {
     if (response.status === 200 && response.data.code === 200) {
       localStorage.setItem('userToken', response.data.data.token);
       localStorage.setItem('userInfo', JSON.stringify(response.data.data.user));
-      // 设置axios的默认请求头，这样后续所有请求都会自动携带JWT
-      // 这样做是无害的，因为即使后端接口不需要JWT，也不会影响请求
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
       message.success('登录成功！');
       
       // 检查路由查询参数中是否有 redirect
@@ -101,7 +99,7 @@ const handleLogin = async () => {
       message.error(`${response.data.message}`);
     }
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
+    if (isAxiosError(error) && error.response) {
       message.error(`${error.response.data.message || '用户名或密码错误'}`);
     } else {
       message.error('登录请求失败，请检查网络连接。');

@@ -17,16 +17,19 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/market',
-      component: () => import('../views/Market.vue'),
+      path: '/asset/upload',
+      component: () => import('../views/AssetUpload.vue'),
+      meta: { requiresAuth: true },
     },
     {
-      path: '/userManagement',
-      component: () => import('../views/UserManagement.vue'),
+      path: '/asset/search',
+      component: () => import('../views/AssetSearch.vue'),
+      meta: { requiresAuth: true },
     },
     {
-      path: '/test',
-      component: () => import('../views/Test.vue'),
+      path: '/chat',
+      component: () => import('../views/Chat.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/wallet',
