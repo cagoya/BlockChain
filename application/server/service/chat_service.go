@@ -22,12 +22,12 @@ func NewChatService() (*ChatService, error) {
 	return &ChatService{db: db}, nil
 }
 
-func (s *ChatService) SendMessage(senderID int, recipientID int, content string) error {
+func (s *ChatService) SendMessage(senderId int, recipientId int, content string) error {
 	// 这里统一时间戳为当前时间
 	timeStamp := time.Now()
 	message := model.Message{
-		SenderID:    senderID,
-		RecipientID: recipientID,
+		SenderID:    senderId,
+		RecipientID: recipientId,
 		Content:     content,
 		TimeStamp:   timeStamp,
 	}
@@ -38,11 +38,11 @@ func (s *ChatService) SendMessage(senderID int, recipientID int, content string)
 	// 查询是否存在聊天会话,如果不存在，则创建新的会话
 	// 存在则更新会话时间和内容
 	var chatSession model.ChatSession
-	err = s.db.Where("sender_id = ? AND recipient_id = ?", senderID, recipientID).First(&chatSession).Error
+	err = s.db.Where("sender_id = ? AND recipient_id = ?", senderId, recipientId).First(&chatSession).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		chatSession = model.ChatSession{
-			SenderID:     senderID,
-			RecipientID:  recipientID,
+			SenderID:     senderId,
+			RecipientID:  recipientId,
 			LastMessage:  content,
 			LastActivity: timeStamp,
 		}

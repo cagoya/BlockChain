@@ -168,7 +168,7 @@ const walletApi = {
    */
   transfer: (recipientId: number, amount: number) => {
     return instance.post('/wallet/transfer', {
-      recipientID: recipientId,
+      recipientId: recipientId,
       amount: amount
     });
   },
