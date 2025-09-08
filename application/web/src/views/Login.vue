@@ -57,10 +57,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from '../utils/axios';
 import { isAxiosError } from 'axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import { accountApi } from '../api';
 
 // 响应式变量，用于存储用户输入
 const username = ref('');
@@ -75,10 +75,7 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('/api/account/login', {
-      Username: username.value,
-      Password: password.value,
-    });
+    const response = await accountApi.login(username.value, password.value);
     
     // 检查响应状态码和业务代码
     if (response.status === 200 && response.data.code === 200) {
@@ -88,7 +85,6 @@ const handleLogin = async () => {
       
       // 检查路由查询参数中是否有 redirect
       const redirectPath = router.currentRoute.value.query.redirect as string;
-
       // 如果有 redirect 参数，跳转到该路径，否则跳转到默认页面
       if (redirectPath) {
         router.push(redirectPath);

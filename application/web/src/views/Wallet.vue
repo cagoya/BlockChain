@@ -238,7 +238,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, watch } from 'vue';
 import ProductCard from '../components/ProductCard.vue';
-import api from '../api';
+import { walletApi } from '../api';
 
 // 状态定义
 const balance = ref(0);
@@ -315,7 +315,7 @@ const formatTime = (timeString: string) => {
 // API调用函数
 const fetchBalance = async () => {
   try {
-    const res = await api.getBalance();
+    const res = await walletApi.getBalance();
     balance.value = res.data;
     lastUpdateTime.value = new Date().toLocaleTimeString();
   } catch (err) {
@@ -326,7 +326,7 @@ const fetchBalance = async () => {
 
 const fetchMyNfts = async () => {
   try {
-    const res = await api.getAssetsByOwner();
+    const res = await walletApi.getAssetsByOwner();
     myNfts.value = res.data;
   } catch (err) {
     showNotification('获取NFT资产失败', 'error');
@@ -336,7 +336,7 @@ const fetchMyNfts = async () => {
 
 const checkOrgType = async () => {
   try {
-    const res = await api.getCurrentOrg();
+    const res = await walletApi.getCurrentOrg();
     isFinanceOrg.value = res.data === 3; // 金融组织编号为3
   } catch (err) {
     console.error('获取组织信息失败', err);
@@ -356,7 +356,7 @@ const handleTransfer = async () => {
 
   try {
     isTransferring.value = true;
-    await api.transfer(transferForm.recipientId, transferForm.amount);
+    await walletApi.transfer(transferForm.recipientId, transferForm.amount);
     showNotification('转账成功');
     showTransferDialog.value = false;
     await fetchBalance();
@@ -379,7 +379,7 @@ const handleMint = async () => {
 
   try {
     isMinting.value = true;
-    await api.mintToken(mintForm.accountId, mintForm.amount);
+    await walletApi.mintToken(mintForm.accountId, mintForm.amount);
     showNotification('铸币成功');
     showMintDialog.value = false;
     // 重置表单
@@ -410,8 +410,8 @@ const fetchAndShowTransactionHistory = async () => {
   try {
     showNotification('正在加载转账记录...', 'info');
     const [sentRes, receivedRes] = await Promise.all([
-      api.getTransfersBySender(),
-      api.getTransfersByRecipient()
+      walletApi.getTransfersBySender(),
+      walletApi.getTransfersByRecipient()
     ]);
     sentTransfers.value = sentRes.data;
     receivedTransfers.value = receivedRes.data;
@@ -430,7 +430,7 @@ const closeAllModals = () => {
 };
 
 // 监听转账表单金额变化
-watch(() => transferForm.amount, (newVal) => {
+watch(() => transferForm.amount, () => {
   // 可以在这里添加金额验证逻辑
 });
 </script>

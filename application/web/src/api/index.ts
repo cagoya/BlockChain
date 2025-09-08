@@ -12,10 +12,16 @@ const instance = axios.create({
 // 请求拦截器添加认证信息
 instance.interceptors.request.use(
   (config) => {
-    // 从本地存储获取token并添加到请求头
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // 检查是否为不需要认证的接口
+    const isAuthRequest = config.url?.includes('/account/login') || 
+                         config.url?.includes('/account/register');
+    
+    // 如果不是认证相关接口，则添加token
+    if (!isAuthRequest) {
+      const token = localStorage.getItem('userToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -27,12 +33,124 @@ instance.interceptors.request.use(
 // 响应拦截器处理错误
 instance.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response;
   },
   (error) => {
     return Promise.reject(error.response?.data || '请求失败');
   }
 );
+
+// 账户相关API
+const accountApi = {
+  /**
+   * 用户登录
+   * @param username 用户名
+   * @param password 密码
+   */
+  login: (username: string, password: string) => {
+    return instance.post('/account/login', {
+      Username: username,
+      Password: password
+    });
+  },
+
+  /**
+   * 用户注册
+   * @param username 用户名
+   * @param email 邮箱
+   * @param password 密码
+   * @param org 组织ID
+   */
+  register: (username: string, email: string, password: string, org: number) => {
+    return instance.post('/account/register', {
+      Username: username,
+      Email: email,
+      Password: password,
+      Org: org
+    });
+  },
+
+  /**
+   * 用户登出
+   */
+  logout: () => {
+    return instance.post('/account/logout');
+  },
+
+  /**
+   * 更新用户个人资料
+   * @param profileData 个人资料数据
+   */
+  updateProfile: (profileData: any) => {
+    return instance.put('/account/profile', profileData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  },
+
+  /**
+   * 更新用户头像
+   * @param formData 头像文件数据
+   */
+  updateAvatar: (formData: FormData) => {
+    return instance.put('/account/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  /**
+   * 更新用户组织
+   * @param orgData 组织数据
+   */
+  updateOrg: (orgData: any) => {
+    return instance.put('/account/org', orgData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  },
+
+  /**
+   * 获取用户个人资料
+   */
+  getProfile: () => {
+    return instance.get('/account/profile');
+  }
+};
+
+// 资产相关API
+const assetApi = {
+  /**
+   * 创建NFT资产
+   * @param assetData 资产数据
+   */
+  create: (assetData: FormData) => {
+    return instance.post('/asset/create', assetData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
+  /**
+   * 根据作者ID获取资产
+   * @param authorId 作者ID
+   */
+  getByAuthorId: (authorId: string) => {
+    return instance.get(`/asset/getAssetByAuthorID?authorId=${authorId}`);
+  },
+
+  /**
+   * 根据拥有者ID获取资产
+   * @param ownerId 拥有者ID
+   */
+  getByOwnerId: (ownerId: string) => {
+    return instance.get(`/asset/getAssetByOwnerID?ownerId=${ownerId}`);
+  }
+};
 
 // 钱包相关API
 const walletApi = {
@@ -99,4 +217,12 @@ const walletApi = {
 }
 };
 
-export default walletApi;
+// 导出所有API模块
+export { accountApi, assetApi, walletApi };
+
+// 默认导出包含所有API的对象
+export default {
+  account: accountApi,
+  asset: assetApi,
+  wallet: walletApi
+};

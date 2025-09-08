@@ -83,7 +83,6 @@
   
   <script setup lang="ts">
   import { ref, watch } from 'vue';
-  import axios from '../utils/axios';
   import { message } from 'ant-design-vue';
 import { 
   UserOutlined, 
@@ -91,6 +90,7 @@ import {
   CloudUploadOutlined, 
   CheckCircleOutlined
 } from '@ant-design/icons-vue';
+import { accountApi } from '../api';
   
   // Props
   interface Props {
@@ -191,11 +191,7 @@ const handleUpload = async () => {
     formData.append('avatar', selectedFile.value);
     
     // 调用后端上传接口
-    const response = await axios.put('/api/account/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await accountApi.updateAvatar(formData);
     
     if (response.data && response.data.code === 200) {
       const newAvatarUrl = response.data.data.avatarURL || URL.createObjectURL(selectedFile.value);

@@ -32,7 +32,7 @@
             <a-button type="primary" html-type="submit" :loading="searching" @click="handleSearch">
               搜索
             </a-button>
-            <a-button @click="handleReset" style="margin-left: 8px">
+            <a-button @click="handleReset">
               重置
             </a-button>
           </a-form-item>
@@ -77,7 +77,7 @@ import AssetNav from '../components/AssetNav.vue';
 import AssetCard from '../components/AssetCard.vue';
 import { ref } from 'vue';
 import { message } from 'ant-design-vue';
-import axios from '../utils/axios';
+import { assetApi } from '../api';
 
 interface Asset {
   id: string;
@@ -106,18 +106,18 @@ const handleSearch = async () => {
   hasSearched.value = true;
 
   try {
-    let url = '';
+    let response;
     
     switch (searchType.value) {
       case 'author':
-        url = `/api/asset/getAssetByAuthorID?authorId=${searchValue.value}`;
+        response = await assetApi.getByAuthorId(searchValue.value);
         break;
       case 'owner':
-        url = `/api/asset/getAssetByOwnerID?ownerId=${searchValue.value}`;
+        response = await assetApi.getByOwnerId(searchValue.value);
         break;
+      default:
+        throw new Error('无效的查询类型');
     }
-
-    const response = await axios.get(url);
 
     const result = await response.data;
 
@@ -202,11 +202,24 @@ const handleReset = () => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+.search-form :deep(.ant-form) {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-form :deep(.ant-form-item) {
+  margin-bottom: 0;
+  margin-right: 0;
+}
+
 .search-form :deep(.ant-form-item-label > label) {
   font-size: 16px;
   font-weight: 600;
   color: #3f51b5;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  white-space: nowrap;
 }
 
 .search-form :deep(.ant-select) {
@@ -241,6 +254,7 @@ const handleReset = () => {
   border-radius: 8px;
   font-weight: 500;
   transition: all 0.3s ease;
+  margin-right: 8px;
 }
 
 .search-form :deep(.ant-btn-primary:hover) {
@@ -364,6 +378,32 @@ const handleReset = () => {
   
   .search-form {
     padding: 20px;
+  }
+  
+  .search-form :deep(.ant-form) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .search-form :deep(.ant-form-item) {
+    width: 100%;
+  }
+  
+  .search-form :deep(.ant-form-item-label) {
+    text-align: left;
+    margin-bottom: 4px;
+  }
+  
+  .search-form :deep(.ant-select),
+  .search-form :deep(.ant-input) {
+    width: 100% !important;
+  }
+  
+  .search-form :deep(.ant-form-item:last-child) {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
   }
   
   .assets-grid {

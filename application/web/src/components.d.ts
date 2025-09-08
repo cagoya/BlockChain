@@ -41,6 +41,7 @@ declare module 'vue' {
     AUpload: typeof import('ant-design-vue/es')['Upload']
     AvatarUploader: typeof import('./components/AvatarUploader.vue')['default']
     OrgUpdater: typeof import('./components/OrgUpdater.vue')['default']
+    ProductCard: typeof import('./components/ProductCard.vue')['default']
     ProfileEditor: typeof import('./components/ProfileEditor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

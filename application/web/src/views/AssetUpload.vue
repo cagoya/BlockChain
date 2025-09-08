@@ -114,10 +114,10 @@ import AssetNav from '../components/AssetNav.vue';
 import { ref, reactive } from 'vue';
 import { message } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
-import axios from '../utils/axios';
 import { Cropper } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 import 'vue-advanced-cropper/dist/theme.bubble.css'; // 使用 bubble 主题，更现代
+import { assetApi } from '../api';
 
 interface FormData {
   name: string;
@@ -222,11 +222,7 @@ const handleSubmit = async () => {
     formDataToSend.append('description', formData.description || '暂无描述');
     formDataToSend.append('image', formData.image, 'cropped_image.jpeg'); // Blob需要指定文件名
 
-    const response = await axios.post('/api/asset/create', formDataToSend, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-    });
+    const response = await assetApi.create(formDataToSend);
 
     const result = response.data;
 

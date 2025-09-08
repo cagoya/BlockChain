@@ -67,13 +67,13 @@
 
 <script setup lang="ts">
 import { ref, watch, reactive } from 'vue';
-import axios from '../utils/axios';
 import { message } from 'ant-design-vue';
 import { 
   TeamOutlined, 
   InfoCircleOutlined 
 } from '@ant-design/icons-vue';
 import type { FormInstance, Rule } from 'ant-design-vue/es/form';
+import { accountApi } from '../api';
 
 // Props
 interface Props {
@@ -172,11 +172,7 @@ const handleSubmit = async () => {
     };
 
     // 调用后端接口
-    const response = await axios.put('/api/account/org', submitData, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await accountApi.updateOrg(submitData);
 
     if (response.data && response.data.code === 200) {
       message.success('用户组织更新成功！');

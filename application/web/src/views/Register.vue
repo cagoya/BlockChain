@@ -160,9 +160,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import axios from '../utils/axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import { accountApi } from '../api';
 
 // 响应式数据
 const username = ref('');
@@ -242,12 +242,12 @@ const isFormValid = computed(() => {
 const handleRegister = async () => {
   if (isFormValid.value) {
     try {
-      const response = await axios.post('/api/account/register', {
-        Username: username.value,
-        Email: email.value,
-        Password: password.value,
-        Org: selectedOrg.value,
-      });
+      const response = await accountApi.register(
+        username.value,
+        email.value,
+        password.value,
+        selectedOrg.value
+      );
       if (response.status === 200 && response.data.code === 200) {
         message.success('注册成功！');
         router.push('/login');

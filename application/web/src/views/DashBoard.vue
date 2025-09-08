@@ -87,7 +87,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import axios from '../utils/axios';
 import { useRouter } from 'vue-router';
 import {
   EditOutlined,
@@ -104,6 +103,7 @@ import { orgMap } from '../utils';
 import AvatarUploader from '../components/AvatarUploader.vue';
 import ProfileEditor from '../components/ProfileEditor.vue';
 import OrgUpdater from '../components/OrgUpdater.vue';
+import { accountApi } from '../api';
 interface UserInfo {
   username: string;
   avatarURL: string;
@@ -173,9 +173,9 @@ const handleMenuClick = (e: MenuInfo) => {
 // 登出函数
 const handleLogout = async () => {
   try{
-    const response = await axios.post('/api/account/logout');
+    const response = await accountApi.logout();
     if (response.status === 200 && response.data.code === 200) {
-      axios.defaults.headers.common['Authorization'] = '';
+      // 清除认证信息
       message.success('已成功登出！');
       localStorage.removeItem('userInfo');
       localStorage.removeItem('userToken');
@@ -288,6 +288,7 @@ const handleOrgUpdateSuccess = (result: any) => {
   font-weight: 700;
   margin: 0;
   letter-spacing: 0.5px;
+  color: #000;
 }
 
 .greeting {
