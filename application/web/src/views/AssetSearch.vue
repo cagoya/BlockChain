@@ -206,12 +206,13 @@ const handleReset = () => {
   display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .search-form :deep(.ant-form-item) {
   margin-bottom: 0;
   margin-right: 0;
+  flex-shrink: 0;
 }
 
 .search-form :deep(.ant-form-item-label > label) {
@@ -381,29 +382,25 @@ const handleReset = () => {
   }
   
   .search-form :deep(.ant-form) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
   
-  .search-form :deep(.ant-form-item) {
-    width: 100%;
+  .search-form :deep(.ant-form-item-label > label) {
+    font-size: 14px;
   }
   
-  .search-form :deep(.ant-form-item-label) {
-    text-align: left;
-    margin-bottom: 4px;
+  .search-form :deep(.ant-select) {
+    width: 120px !important;
   }
   
-  .search-form :deep(.ant-select),
   .search-form :deep(.ant-input) {
-    width: 100% !important;
+    width: 150px !important;
   }
   
-  .search-form :deep(.ant-form-item:last-child) {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
+  .search-form :deep(.ant-btn) {
+    padding: 4px 8px;
+    font-size: 12px;
   }
   
   .assets-grid {

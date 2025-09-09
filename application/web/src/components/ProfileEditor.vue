@@ -7,7 +7,6 @@
       centered
       class="profile-editor-modal"
       @ok="handleSubmit"
-      @cancel="handleCancel"
       :confirm-loading="submitting"
     >
       <div class="profile-editor-content">
@@ -288,12 +287,6 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false;
   }
-};
-
-// 取消操作
-const handleCancel = () => {
-  modalVisible.value = false;
-  emit('cancel');
 };
 </script>
 

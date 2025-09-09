@@ -194,7 +194,7 @@ const handleUpload = async () => {
     const response = await accountApi.updateAvatar(formData);
     
     if (response.data && response.data.code === 200) {
-      const newAvatarUrl = response.data.data.avatarURL || URL.createObjectURL(selectedFile.value);
+      const newAvatarUrl = response.data.data || URL.createObjectURL(selectedFile.value);
       
       message.success('头像上传成功！');
       uploadModalVisible.value = false;

@@ -14,7 +14,7 @@ type Transfer struct {
 	SenderID    int       `json:"senderId"`    // 转出钱包ID
 	RecipientID int       `json:"recipientId"` // 转入钱包ID
 	Amount      int       `json:"amount"`      // 转账金额
-	Time        time.Time `json:"time"`        // 转账时间
+	TimeStamp   time.Time `json:"timeStamp"`   // 转账时间
 }
 
 type TransferRequest struct {
@@ -27,7 +27,7 @@ type WithHolding struct {
 	AccountID int       `json:"accountId"` // 预扣款账号ID
 	ListingID string    `json:"listingId"` // 预扣款商品ID
 	Amount    int       `json:"amount"`    // 预扣款金额
-	Time      time.Time `json:"time"`      // 预扣款时间
+	TimeStamp time.Time `json:"timeStamp"` // 预扣款时间
 }
 
 type WithHoldingRequest struct {

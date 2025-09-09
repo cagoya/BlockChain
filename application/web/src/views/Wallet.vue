@@ -110,12 +110,18 @@ interface TransferForm {
   amount: string;
 }
 
+// 用于API调用的类型
+interface TransferRequest {
+  recipientId: number;
+  amount: number;
+}
+
 interface TransferRecord {
   id: string;
   senderId: number;
   recipientId: number;
   amount: number;
-  time: string;
+  timeStamp: string;
 }
 
 interface Asset {
@@ -157,12 +163,14 @@ const transferColumns = [
     ellipsis: true
   },
   {
-    title: '对方ID',
-    key: 'counterparty',
-    render: (record: TransferRecord) => 
-    Number(record.senderId) === Number(user.value.id) 
-      ? record.recipientId 
-      : record.senderId
+    title: '转出方ID',
+    dataIndex: 'senderId',
+    key: 'senderId'
+  },
+  {
+    title: '转入方ID',
+    dataIndex: 'recipientId',
+    key: 'recipientId'
   },
   {
     title: '金额',
@@ -171,9 +179,8 @@ const transferColumns = [
   },
   {
     title: '时间',
-    dataIndex: 'time',
-    key: 'time',
-    render: (time: string) => new Date(time).toLocaleString()
+    dataIndex: 'timeStamp',
+    key: 'timeStamp',
   }
 ];
 
@@ -212,15 +219,33 @@ const loadTransferRecords = async () => {
     if (sentResponse.data.code === 200) {
       sentTransfers.value = sentResponse.data.data || [];
     }
+    sentTransfers.value.forEach(transfer => {
+      transfer.timeStamp = formatDate(transfer.timeStamp);
+    });
 
     const receivedResponse = await walletApi.getTransfersByRecipient();
     if (receivedResponse.data.code === 200) {
       receivedTransfers.value = receivedResponse.data.data || [];
     }
+    receivedTransfers.value.forEach(transfer => {
+      transfer.timeStamp = formatDate(transfer.timeStamp);
+    });
   } catch (error) {
     message.error('获取转账记录失败');
     console.error(error);
   }
+};
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 const loadMyNFTs = async () => {
@@ -285,11 +310,14 @@ const handleTransfer = async () => {
     return;
   }
 
-  const recipientId = Number(transferForm.value.recipientId);
-  const amount = Number(transferForm.value.amount);
+  // 将字符串转换为数字进行API调用
+  const transferData: TransferRequest = {
+    recipientId: Number(transferForm.value.recipientId),
+    amount: Number(transferForm.value.amount)
+  };
 
   try {
-    const response = await walletApi.transfer(recipientId, amount);
+    const response = await walletApi.transfer(transferData.recipientId, transferData.amount);
     if (response.data.code === 200) {
       message.success('转账成功');
       // 重置表单和错误信息

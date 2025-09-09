@@ -169,7 +169,7 @@ const username = ref('');
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
-const selectedOrg = ref<number | null>(null);
+const selectedOrg = ref<number>(2);
 const orgWarning = ref('');
 
 // 组织选项配置
@@ -221,7 +221,7 @@ const handleOrgChange = (e: any) => {
   const value = e.target.value;
   if (value === 1 || value === 3) {
     orgWarning.value = '不支持选择该组织，请联系管理员';
-    selectedOrg.value = null; // 清空选择
+    selectedOrg.value = 2; // 清空选择
   } else {
     orgWarning.value = '';
   }
