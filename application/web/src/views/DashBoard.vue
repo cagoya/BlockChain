@@ -108,12 +108,12 @@ interface UserInfo {
   username: string;
   avatarURL: string;
 }
-import { backendURL } from '../api/index';
+import { getImageURL } from '../api/index';
 
 const router = useRouter();
 
 const user = ref<UserInfo>({
-  username: '游客',
+  username: '',
   avatarURL: ''
 });
 
@@ -133,11 +133,6 @@ onMounted(() => {
   loadUserInfo();
 });
 
-// 获取图片完整URL
-const getImageUrl = (imageName: string) => {
-  return `${backendURL.replace('/api', '')}/public/images/${imageName}`;
-};
-
 // 加载用户信息
 const loadUserInfo = () => {
   const userInfoString = localStorage.getItem('userInfo');
@@ -145,7 +140,7 @@ const loadUserInfo = () => {
     try {
       const parsedUserInfo = JSON.parse(userInfoString);
       user.value.username = parsedUserInfo.username || user.value.username;
-      user.value.avatarURL = getImageUrl(parsedUserInfo.avatarURL) || user.value.avatarURL;
+      user.value.avatarURL = getImageURL(parsedUserInfo.avatarURL) || user.value.avatarURL;
       userInfo.value.id = parsedUserInfo.id || userInfo.value.id;
       userInfo.value.username = parsedUserInfo.username || userInfo.value.username;
       userInfo.value.email = parsedUserInfo.email || userInfo.value.email;
@@ -197,7 +192,7 @@ const handleLogout = async () => {
 
 // 头像上传成功处理
 const handleAvatarUploadSuccess = (avatarUrl: string) => {
-  user.value.avatarURL = getImageUrl(avatarUrl);
+  user.value.avatarURL = getImageURL(avatarUrl);
   
   // 更新 localStorage
   const userInfoString = localStorage.getItem('userInfo');

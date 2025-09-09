@@ -1,7 +1,7 @@
 <template>
   <div class="asset-card" :class="{ 'selected': isSelected }">
     <div class="asset-image-container">
-      <img :src="getImageUrl(asset.imageName)" :alt="asset.name" class="asset-image" />
+      <img :src="getImageURL(asset.imageName)" :alt="asset.name" class="asset-image" />
     </div>
     <div class="asset-info">
       <h3 class="asset-name">{{ asset.name }}</h3>
@@ -35,12 +35,7 @@ defineProps<{
   isSelected?: boolean;
 }>();
 
-import { backendURL } from '../api/index';
-
-// 获取图片完整URL
-const getImageUrl = (imageName: string) => {
-  return `${backendURL.replace('/api', '')}/public/images/${imageName}`;
-};
+import { getImageURL } from '../api/index';
 
 // 格式化日期
 const formatDate = (dateString: string) => {

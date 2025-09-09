@@ -45,6 +45,7 @@ func main() {
 	walletHandler := api.NewWalletHandler()
 	assetHandler := api.NewAssetHandler()
 	chatHandler, err := api.NewChatHandler()
+	marketHandler := api.NewMarketHandler()
 	if err != nil {
 		log.Fatalf("创建聊天处理程序失败：%v", err)
 	}
@@ -109,7 +110,6 @@ func main() {
 	}
 
 	// 聊天相关接口（无需认证），主要是因为websocket
-	// token 携带在url中
 	chat := apiGroup.Group("/chat")
 	{
 		chat.GET("/ws", chatHandler.SendMessage)
@@ -123,16 +123,11 @@ func main() {
 		authChat.POST("/readMessages", chatHandler.ReadMessages)
 		authChat.GET("/getUnreadMessageCount", chatHandler.GetUnreadMessageCount)
 	}
-	marketHandler := api.NewMarketHandler() // 新增market
-	// 市场（公开）
-	marketPublic := apiGroup.Group("/market")
-	{
-		marketPublic.GET("/listings", marketHandler.ListListings)
-	}
 
 	// 市场（需要 JWT）
 	market := apiGroup.Group("/market", jwtMiddleware.Auth())
 	{
+		market.GET("/listings", marketHandler.ListListings)
 		market.POST("/listing", marketHandler.CreateListing)
 		market.POST("/offer", marketHandler.CreateOffer)
 		market.POST("/offer/:id/accept", marketHandler.AcceptOffer)

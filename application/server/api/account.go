@@ -152,13 +152,12 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 }
 
 func (h *AccountHandler) GetAvatar(c *gin.Context) {
-	// 从上下文中获取用户ID（由中间件设置）
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
 		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	avatarURL, err := h.accountService.GetAvatarById(userID.(int))
+	avatarURL, err := h.accountService.GetAvatarById(userID)
 	if err != nil {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
