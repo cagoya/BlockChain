@@ -213,8 +213,18 @@ const walletApi = {
   return instance.get('/account/profile').then(user => {
     // 假设用户信息中组织字段为org
     return user.data.org;
-  });
-}
+    });
+  },
+
+ /**
+   * 获取当前用户预扣款
+   */
+  getWithholdingsByAccount: () => {
+    return instance.get('/wallet/getWithHoldingByAccountID');
+  },
+  getWithholdingsByListing: (listingId: string) => {
+    return instance.get(`/wallet/getWithHoldingByListingID?listingID=${listingId}`);
+  }
 };
 
 // 导出所有API模块
