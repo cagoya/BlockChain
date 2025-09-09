@@ -634,6 +634,57 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 	return nil
 }
 
+// 卖家接受出价 -> 释放冻结资金到卖家
+func (s *SmartContract) ReleaseHolding(ctx contractapi.TransactionContextInterface, listingID string, sellerID int, amount int, timeStamp time.Time) error {
+	// 给卖家加钱
+	var seller Account
+	sellerKey, _ := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", sellerID)})
+	_ = s.getState(ctx, sellerKey, &seller) // 如果卖家没钱包，应该先开通
+	seller.Balance += amount
+	if err := s.putState(ctx, sellerKey, seller); err != nil {
+		return fmt.Errorf("更新卖家账户失败：%v", err)
+	}
+
+	// 删除 listing 下的冻结记录
+	withHoldings, err := s.GetWithHoldingByListingID(ctx, listingID)
+	if err != nil {
+		return err
+	}
+	for _, w := range withHoldings {
+		key1, _ := s.getCompositeKey(ctx, WITH_HOLDING_KEY1, []string{fmt.Sprintf("%d", w.AccountID), w.ID})
+		_ = ctx.GetStub().DelState(key1)
+		key2, _ := s.getCompositeKey(ctx, WITH_HOLDING_KEY2, []string{w.ListingID, w.ID})
+		_ = ctx.GetStub().DelState(key2)
+	}
+	return nil
+}
+
+// 买家退款 -> 把冻结金额退回买家
+func (s *SmartContract) RefundHolding(ctx contractapi.TransactionContextInterface, listingID string, bidderID int, amount int, timeStamp time.Time) error {
+	// 给买家退钱
+	var buyer Account
+	buyerKey, _ := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", bidderID)})
+	_ = s.getState(ctx, buyerKey, &buyer)
+	buyer.Balance += amount
+	if err := s.putState(ctx, buyerKey, buyer); err != nil {
+		return fmt.Errorf("更新买家账户失败：%v", err)
+	}
+
+	// 删除冻结记录
+	withHoldings, err := s.GetWithHoldingByListingID(ctx, listingID)
+	if err != nil {
+		return err
+	}
+	for _, w := range withHoldings {
+		if w.AccountID == bidderID {
+			key1, _ := s.getCompositeKey(ctx, WITH_HOLDING_KEY1, []string{fmt.Sprintf("%d", w.AccountID), w.ID})
+			_ = ctx.GetStub().DelState(key1)
+			key2, _ := s.getCompositeKey(ctx, WITH_HOLDING_KEY2, []string{w.ListingID, w.ID})
+			_ = ctx.GetStub().DelState(key2)
+		}
+	}
+	return nil
+}
 func main() {
 	chaincode, err := contractapi.NewChaincode(&SmartContract{})
 	if err != nil {
