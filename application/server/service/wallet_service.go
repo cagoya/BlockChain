@@ -47,17 +47,27 @@ func (s *WalletService) GetBalance(id int, org int) (int, error) {
 	return balance, nil
 }
 
-func (s *WalletService) Transfer(senderId int, recipientId int, amount int, org int) error {
+// wallet_service.go
+func (s *WalletService) Transfer(senderId int, recipientId int, amount int, org int) (string, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
-		return fmt.Errorf("获取组织失败：%s", err)
+		return "", fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	_, err = contract.SubmitTransaction("Transfer", uuid.New().String(), fmt.Sprintf("%d", senderId), fmt.Sprintf("%d", recipientId), fmt.Sprintf("%d", amount), time.Now().Format(time.RFC3339))
+
+	txid := uuid.New().String()
+	_, err = contract.SubmitTransaction(
+		"Transfer",
+		fmt.Sprintf("%d", senderId),
+		fmt.Sprintf("%d", recipientId),
+		txid,
+		fmt.Sprintf("%d", amount),
+		time.Now().Format(time.RFC3339),
+	)
 	if err != nil {
-		return fmt.Errorf("转账失败：%s", fabric.ExtractErrorMessage(err))
+		return "", fmt.Errorf("转账失败：%s", fabric.ExtractErrorMessage(err))
 	}
-	return nil
+	return txid, nil
 }
 
 func (s *WalletService) MintToken(accountID int, amount int, org int) error {
@@ -113,17 +123,30 @@ func (s *WalletService) GetTransferByRecipientID(recipientId int, org int) ([]mo
 	return transfers, nil
 }
 
-func (s *WalletService) WithHoldAccount(accountID int, listingID string, amount int, org int) error {
+// 之前：func (s *WalletService) WithHoldAccount(accountID int, listingID string, amount int, org int) error
+func (s *WalletService) WithHoldAccount(accountID int, listingID string, amount int, org int) (string, string, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
-		return fmt.Errorf("获取组织失败：%s", err)
+		return "", "", fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	_, err = contract.SubmitTransaction("WithHoldAccount", uuid.New().String(), fmt.Sprintf("%d", accountID), listingID, fmt.Sprintf("%d", amount), time.Now().Format(time.RFC3339))
+
+	holdID := uuid.New().String()
+	txid := uuid.New().String()
+
+	_, err = contract.SubmitTransaction(
+		"WithHoldAccount",
+		holdID, // 建议把 holdID 传进链码并由链码作为主键存档
+		fmt.Sprintf("%d", accountID),
+		listingID,
+		fmt.Sprintf("%d", amount),
+		time.Now().Format(time.RFC3339),
+		txid, // 可一起带上 txid；或由链码生成返回
+	)
 	if err != nil {
-		return fmt.Errorf("预扣款失败：%s", fabric.ExtractErrorMessage(err))
+		return "", "", fmt.Errorf("预扣款失败：%s", fabric.ExtractErrorMessage(err))
 	}
-	return nil
+	return holdID, txid, nil
 }
 
 func (s *WalletService) GetWithHoldingByAccountID(accountID int, org int) ([]model.WithHolding, error) {
@@ -177,4 +200,46 @@ func (s *WalletService) ClearWithHolding(listingID string, org int) error {
 		return fmt.Errorf("清除预扣款失败：%s", fabric.ExtractErrorMessage(err))
 	}
 	return nil
+}
+
+func (s *WalletService) ReleaseHolding(listingID string, sellerID int, amount int, org int) (string, error) {
+	orgName, err := model.GetOrg(org)
+	if err != nil {
+		return "", fmt.Errorf("获取组织失败：%s", err)
+	}
+	contract := fabric.GetContract(orgName)
+	txid := uuid.New().String()
+	_, err = contract.SubmitTransaction(
+		"ReleaseHolding", // 需要你链码提供该方法
+		listingID,
+		fmt.Sprintf("%d", sellerID),
+		fmt.Sprintf("%d", amount),
+		time.Now().Format(time.RFC3339),
+		txid,
+	)
+	if err != nil {
+		return "", fmt.Errorf("释放失败：%s", fabric.ExtractErrorMessage(err))
+	}
+	return txid, nil
+}
+
+func (s *WalletService) RefundHolding(listingID string, bidderID int, amount int, org int) (string, error) {
+	orgName, err := model.GetOrg(org)
+	if err != nil {
+		return "", fmt.Errorf("获取组织失败：%s", err)
+	}
+	contract := fabric.GetContract(orgName)
+	txid := uuid.New().String()
+	_, err = contract.SubmitTransaction(
+		"RefundHolding",
+		listingID,
+		fmt.Sprintf("%d", bidderID),
+		fmt.Sprintf("%d", amount),
+		time.Now().Format(time.RFC3339),
+		txid,
+	)
+	if err != nil {
+		return "", fmt.Errorf("退款失败：%s", fabric.ExtractErrorMessage(err))
+	}
+	return txid, nil
 }

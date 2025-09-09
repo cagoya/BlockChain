@@ -114,6 +114,22 @@ func main() {
 		chat.GET("/getMessages", chatHandler.GetMessages)
 		chat.POST("/readMessages", chatHandler.ReadMessages)
 	}
+	marketHandler := api.NewMarketHandler() // 新增market
+	// 市场（公开）
+	marketPublic := apiGroup.Group("/market")
+	{
+		marketPublic.GET("/listings", marketHandler.ListListings)
+	}
+
+	// 市场（需要 JWT）
+	market := apiGroup.Group("/market", jwtMiddleware.Auth())
+	{
+		market.POST("/listing", marketHandler.CreateListing)
+		market.POST("/offer", marketHandler.CreateOffer)
+		market.POST("/offer/:id/accept", marketHandler.AcceptOffer)
+		market.POST("/offer/:id/cancel", marketHandler.CancelOffer)
+		market.GET("/offers/mine", marketHandler.ListMyOffers)
+	}
 
 	// 打印路由信息
 	printRoutes(r)
