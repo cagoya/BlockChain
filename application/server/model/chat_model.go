@@ -98,8 +98,8 @@ func (m *ConnManager) GetOnlineUsers() []int {
 // WebSocket 升级器
 var Upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// 允许Vue默认端口和后端运行端口
-		return r.Host == "localhost:5173" || r.Host == "localhost:8888"
+		// 开发环境允许所有资源
+		return true
 	},
 }
 

@@ -136,6 +136,14 @@ const accountApi = {
    */
   getUserNameById: (userId: number) => {
     return instance.get(`/account/userName?id=${userId}`);
+  },
+
+  /**
+   * 获取头像
+   * @param userId 用户ID
+   */
+  getAvatar: (userId: number) => {
+    return instance.get(`/account/avatar?id=${userId}`);
   }
 
 };

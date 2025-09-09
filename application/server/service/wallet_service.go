@@ -58,9 +58,9 @@ func (s *WalletService) Transfer(senderId int, recipientId int, amount int, org 
 	txid := uuid.New().String()
 	_, err = contract.SubmitTransaction(
 		"Transfer",
+		txid,
 		fmt.Sprintf("%d", senderId),
 		fmt.Sprintf("%d", recipientId),
-		txid,
 		fmt.Sprintf("%d", amount),
 		time.Now().Format(time.RFC3339),
 	)

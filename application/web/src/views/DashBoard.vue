@@ -53,7 +53,7 @@
           <div class="card-description">探索、买卖和收藏来自全球的数字资产。</div>
         </router-link>
 
-        <router-link to="/wallet" class="card card-wallet">
+        <router-link to="/wallet/balance" class="card card-wallet">
           <div class="card-icon">
             <WalletOutlined />
           </div>

@@ -43,10 +43,12 @@ declare module 'vue' {
     ATypographyTitle: typeof import('ant-design-vue/es')['TypographyTitle']
     AUpload: typeof import('ant-design-vue/es')['Upload']
     AvatarUploader: typeof import('./components/AvatarUploader.vue')['default']
+    MarketNav: typeof import('./components/MarketNav.vue')['default']
     OrgUpdater: typeof import('./components/OrgUpdater.vue')['default']
     ProductCard: typeof import('./components/ProductCard.vue')['default']
     ProfileEditor: typeof import('./components/ProfileEditor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    WalletNav: typeof import('./components/WalletNav.vue')['default']
   }
 }

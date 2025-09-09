@@ -311,10 +311,16 @@ const handleSubmit = async () => {
 /* 图片上传区域 */
 .image-upload-section {
   margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .upload-area {
   width: 100%;
+  max-width: 500px; /* 限制最大宽度 */
+  display: flex;
+  justify-content: center;
 }
 
 .upload-placeholder {
@@ -329,6 +335,7 @@ const handleSubmit = async () => {
   cursor: pointer;
   transition: all 0.3s ease;
   background-color: #e3f2fd; /* 浅蓝色背景 */
+  text-align: center; /* 确保文本居中 */
 }
 
 .upload-placeholder:hover {
@@ -360,6 +367,7 @@ const handleSubmit = async () => {
 
 .preview-cropper-container {
   width: 100%;
+  max-width: 500px; /* 限制最大宽度，与上传区域保持一致 */
   min-height: 350px;
   border-radius: 12px;
   overflow: hidden;
@@ -373,6 +381,7 @@ const handleSubmit = async () => {
   gap: 15px; /* 增加元素间距 */
   background-color: #f7f9fc;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  margin: 0 auto; /* 确保容器居中 */
 }
 
 .full-width-image {

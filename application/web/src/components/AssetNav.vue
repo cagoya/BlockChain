@@ -2,21 +2,12 @@
   <div class="asset-nav">
     <a-menu mode="horizontal" :selected-keys="selectedKeys" @click="handleMenuClick">
       <a-menu-item key="dashboard">
-        <template #icon>
-          <a-icon type="home" />
-        </template>
         返回首页
       </a-menu-item>
       <a-menu-item key="upload">
-        <template #icon>
-          <a-icon type="upload" />
-        </template>
         上传NFT
       </a-menu-item>
       <a-menu-item key="search">
-        <template #icon>
-          <a-icon type="search" />
-        </template>
         查询资产
       </a-menu-item>
     </a-menu>

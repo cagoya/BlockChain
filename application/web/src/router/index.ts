@@ -27,13 +27,22 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/chat',
+      path: '/market/ask',
       component: () => import('../views/Chat.vue'),
       meta: { requiresAuth: true },
     },
     {
-      path: '/wallet',
+      path: '/wallet/balance',
       component: () => import('../views/Wallet.vue'),
+    },
+    {
+      path: '/wallet/assets',
+      component: () => import('../views/MyAsset.vue'),
+    },
+    {
+      path: '/market',
+      component: () => import('../views/Market.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径

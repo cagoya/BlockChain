@@ -5,7 +5,6 @@ import (
 	"application/service"
 	"application/utils"
 	"fmt"
-	"net/http"
 	"path/filepath"
 	"strconv"
 
@@ -162,7 +161,7 @@ func (h *AccountHandler) GetAvatar(c *gin.Context) {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"avatarURL": avatarURL})
+	utils.Success(c, avatarURL)
 }
 
 func (h *AccountHandler) UpdateAvatar(c *gin.Context) {

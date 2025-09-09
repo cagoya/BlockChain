@@ -1,5 +1,6 @@
 <template>
-    <a-layout style="min-height: 100vh; background-color: #f0f2f5;">
+  <MarketNav />
+    <a-layout style="height: calc(100vh - 64px); background-color: #f0f2f5;">
       <!-- 左侧聊天会话列表 -->
       <a-layout-sider width="300" style="background-color: #fff; border-right: 1px solid #e8e8e8;">
         <div class="logo-container">
@@ -10,6 +11,21 @@
               :text="wsConnected ? '已连接' : '未连接'"
             />
           </div>
+        </div>
+        
+        <!-- 搜索用户区域 -->
+        <div class="search-user-container">
+          <a-input-group compact>
+            <a-input
+              v-model:value="searchUserId"
+              placeholder="输入用户ID搜索"
+              style="width: calc(100% - 80px);"
+              @press-enter="searchUser"
+            />
+            <a-button type="primary" @click="searchUser" :loading="searchingUser">
+              搜索
+            </a-button>
+          </a-input-group>
         </div>
         <div v-if="sessionsLoading" class="loading-container">
           <a-spin size="large" />
@@ -23,7 +39,11 @@
             >
               <a-list-item-meta>
                 <template #avatar>
-                  <a-avatar :size="48" style="background-color: #40a9ff; font-size: 24px; color: #fff; line-height: 48px;">
+                  <a-avatar 
+                    :size="48" 
+                    :src="item.otherUserAvatar"
+                    style="background-color: #40a9ff; font-size: 24px; color: #fff; line-height: 48px;"
+                  >
                     {{ item.otherUserName.charAt(0).toUpperCase() }}
                   </a-avatar>
                 </template>
@@ -63,7 +83,11 @@
             <div v-else class="message-list-inner">
               <div v-for="msg in messages" :key="msg.id" :class="['message-item', { 'sent': msg.senderId === user.id, 'received': msg.senderId !== user.id }]">
                 <div class="avatar-wrapper" v-if="msg.senderId !== user.id">
-                  <a-avatar style="background-color: #40a9ff; font-size: 20px; color: #fff;">
+                  <a-avatar 
+                    size="large"
+                    :src="msg.senderAvatar"
+                    style="background-color: #40a9ff; font-size: 20px; color: #fff;"
+                  >
                     {{ selectedSession.otherUserName.charAt(0).toUpperCase() }}
                   </a-avatar>
                 </div>
@@ -76,7 +100,11 @@
                   <div class="time-stamp">{{ formatTime(msg.timeStamp) }}</div>
                 </div>
                 <div class="avatar-wrapper" v-if="msg.senderId === user.id">
-                  <a-avatar style="background-color: #1890ff; font-size: 20px; color: #fff;">
+                  <a-avatar 
+                    size="large"
+                    :src="user.avatarURL"
+                    style="background-color: #1890ff; font-size: 20px; color: #fff;"
+                  >
                     我
                   </a-avatar>
                 </div>
@@ -85,16 +113,18 @@
           </div>
   
           <!-- 消息输入区域 -->
-          <div class="input-area-container">
-            <a-input-group compact style="display: flex;">
-              <a-input
-                v-model:value="newMessageContent"
-                placeholder="输入消息..."
-                @press-enter="sendMessage"
-                style="flex: 1;"
-              />
-              <a-button type="primary" @click="sendMessage">发送</a-button>
-            </a-input-group>
+          <div class="input-area-container" ref="inputContainer">
+            <div class="resize-handle" @mousedown="startResize"></div>
+            <a-textarea
+              v-model:value="newMessageContent"
+              placeholder="输入消息..."
+              :auto-size="{ minRows: 1, maxRows: 10 }"
+              @press-enter="sendMessage"
+              class="message-textarea"
+            />
+            <div class="send-button-container">
+              <a-button type="primary" @click="sendMessage" class="send-button">发送</a-button>
+            </div>
           </div>
         </div>
         <div v-else class="empty-chat-window">
@@ -107,7 +137,7 @@
   <script setup lang="ts">
   import { ref, onMounted, watch, nextTick } from 'vue';
   import { message } from 'ant-design-vue';
-  import { chatApi, accountApi } from '../api/index';
+  import { chatApi, accountApi, getImageURL, backendURL } from '../api/index';
   
   // 接口定义
   interface ChatSession {
@@ -121,6 +151,7 @@
     unreadCount: number;
     otherUserId: number;
     otherUserName: string;
+    otherUserAvatar: string;
   }
   
   interface Message {
@@ -130,6 +161,7 @@
     content: string;
     timeStamp: string;
     hasRead: boolean;
+    senderAvatar?: string;
   }
 
   interface UserInfo {
@@ -140,8 +172,8 @@
   
   // 状态定义
   const user = ref<UserInfo>({
-    username: '游客',
-    avatarURL: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+    username: '',
+    avatarURL: '',
     id: 0
   });
   const chatSessions = ref<ChatSession[]>([]);
@@ -150,12 +182,22 @@
   const newMessageContent = ref<string>('');
   const ws = ref<WebSocket | null>(null);
   const messageContainer = ref<HTMLDivElement | null>(null);
+  const inputContainer = ref<HTMLDivElement | null>(null);
   
   // 加载状态
   const loading = ref<boolean>(true);
   const sessionsLoading = ref<boolean>(false);
   const messagesLoading = ref<boolean>(false);
   const wsConnected = ref<boolean>(false);
+  
+  // 搜索用户相关状态
+  const searchUserId = ref<string>('');
+  const searchingUser = ref<boolean>(false);
+  
+  // 输入框调整高度相关状态
+  const isResizing = ref<boolean>(false);
+  const startY = ref<number>(0);
+  const startHeight = ref<number>(0);
   // 从localStorage中加载用户信息
   const loadUserInfo = () => {
     const userInfoString = localStorage.getItem('userInfo');
@@ -164,7 +206,7 @@
         const parsedUserInfo = JSON.parse(userInfoString);
         user.value = {
           username: parsedUserInfo.username || user.value.username,
-          avatarURL: parsedUserInfo.avatarURL || user.value.avatarURL,
+          avatarURL: getImageURL(parsedUserInfo.avatarURL) || user.value.avatarURL,
           id: parsedUserInfo.id || 0
         };
       } catch (e) {
@@ -173,8 +215,9 @@
     }
   };
   
-  // 用户信息映射，用于显示用户名
+  // 用户信息映射，用于显示用户名和头像
   const userNamesMap = ref<Record<number, string>>({});
+  const userAvatarsMap = ref<Record<number, string>>({});
   
   // 格式化时间
   const formatTime = (time: string): string => {
@@ -187,6 +230,43 @@
     if (messageContainer.value) {
       messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
     }
+  };
+
+  // 开始调整输入框高度
+  const startResize = (e: MouseEvent) => {
+    e.preventDefault();
+    isResizing.value = true;
+    startY.value = e.clientY;
+    if (inputContainer.value) {
+      startHeight.value = inputContainer.value.offsetHeight;
+    }
+    
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', stopResize);
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  // 处理拖动调整
+  const handleResize = (e: MouseEvent) => {
+    if (!isResizing.value || !inputContainer.value) return;
+    
+    const deltaY = startY.value - e.clientY; // 向上拖动为正值
+    const newHeight = startHeight.value + deltaY;
+    const maxHeight = window.innerHeight * 0.25; // 最大高度为页面高度的四分之一
+    const minHeight = 60; // 最小高度
+    
+    const clampedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+    inputContainer.value.style.height = `${clampedHeight}px`;
+  };
+
+  // 停止调整
+  const stopResize = () => {
+    isResizing.value = false;
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', stopResize);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
   };
 
   // 获取用户信息（带缓存）
@@ -204,6 +284,95 @@
     return '';
   };
 
+  // 获取用户头像（带缓存）
+  const getUserAvatar = async (userId: number): Promise<string> => {
+    // 如果缓存中已有，直接返回
+    if (userAvatarsMap.value[userId]) {
+      return userAvatarsMap.value[userId];
+    }
+
+    try {
+      const response = await accountApi.getAvatar(userId);
+      if (response.data.code === 200 && response.data.data) {
+        // 使用 getImageURL 构建完整的头像URL
+        const avatarURL = getImageURL(response.data.data);
+        userAvatarsMap.value[userId] = avatarURL;
+        return avatarURL;
+      }
+    } catch (error) {
+      console.error('获取用户头像失败:', error);
+    }
+    
+    // 如果获取失败，返回空字符串，使用默认头像
+    return '';
+  };
+
+  // 搜索用户并开始聊天
+  const searchUser = async () => {
+    if (!searchUserId.value.trim()) {
+      message.warning('请输入用户ID');
+      return;
+    }
+
+    const userId = parseInt(searchUserId.value.trim());
+    if (isNaN(userId)) {
+      message.error('请输入有效的用户ID');
+      return;
+    }
+
+    if (userId === user.value.id) {
+      message.warning('不能与自己聊天');
+      return;
+    }
+
+    searchingUser.value = true;
+    try {
+      // 检查用户是否存在
+      const userName = await getUserInfo(userId);
+      if (!userName) {
+        message.error('用户不存在');
+        return;
+      }
+
+      // 检查是否已经存在聊天会话
+      const existingSession = chatSessions.value.find(session => session.otherUserId === userId);
+      if (existingSession) {
+        // 如果会话已存在，直接选择该会话
+        await selectUser(existingSession);
+        message.success(`已切换到与 ${userName} 的聊天`);
+      } else {
+        // 创建新的聊天会话
+        const userAvatar = await getUserAvatar(userId);
+        const newSession: ChatSession = {
+          id: 0, // 新会话暂时没有ID
+          senderId: user.value.id,
+          recipientId: userId,
+          lastMessage: '',
+          lastActivity: new Date().toISOString(),
+          unreadCount: 0,
+          otherUserId: userId,
+          otherUserName: userName,
+          otherUserAvatar: userAvatar
+        };
+
+        // 添加到会话列表顶部
+        chatSessions.value.unshift(newSession);
+        
+        // 选择新会话
+        await selectUser(newSession);
+        message.success(`开始与 ${userName} 聊天`);
+      }
+
+      // 清空搜索框
+      searchUserId.value = '';
+    } catch (error) {
+      message.error('搜索用户失败');
+      console.error('Error searching user:', error);
+    } finally {
+      searchingUser.value = false;
+    }
+  };
+
   // 获取聊天会话列表
   const fetchChatSessions = async () => {
     sessionsLoading.value = true;
@@ -211,15 +380,20 @@
       const response = await chatApi.getChatSessions();
       if (response.data.code === 200) {
         const sessions = [];
-        
+        if (response.data.data === null) {
+          chatSessions.value = [];
+          return;
+        }
         for (const s of response.data.data) {
           const otherUserId = s.senderId === user.value.id ? s.recipientId : s.senderId;
           const otherUserName = await getUserInfo(otherUserId);
+          const otherUserAvatar = await getUserAvatar(otherUserId);
           
           sessions.push({
             ...s,
             otherUserId,
             otherUserName,
+            otherUserAvatar,
             unreadCount: 0
           });
         }
@@ -261,7 +435,16 @@
     try {
       const response = await chatApi.getMessages(otherId);
       if (response.data.code === 200) {
-        messages.value = response.data.data;
+        const messagesData = response.data.data;
+        
+        // 为每条消息添加发送者头像
+        for (const msg of messagesData) {
+          if (msg.senderId !== user.value.id) {
+            msg.senderAvatar = await getUserAvatar(msg.senderId);
+          }
+        }
+        
+        messages.value = messagesData;
         nextTick(() => {
           scrollToBottom();
         });
@@ -325,7 +508,11 @@
       ws.value.send(JSON.stringify(msgToSend));
       
       // 立即在本地界面显示
-      messages.value.push(msgToSend as Message);
+      const messageWithAvatar = {
+        ...msgToSend,
+        senderAvatar: user.value.avatarURL
+      };
+      messages.value.push(messageWithAvatar as Message);
       newMessageContent.value = '';
       nextTick(() => {
         scrollToBottom();
@@ -344,8 +531,6 @@
     }
   };
   
-import { backendURL } from '../api/index';
-
 // 连接WebSocket
 const connectWebSocket = () => {
   // 构建WebSocket URL，包含认证token
@@ -368,6 +553,13 @@ const connectWebSocket = () => {
         }
 
         const receivedMessage: Message = data;
+
+        // 为接收到的消息添加发送者头像
+        if (receivedMessage.senderId !== user.value.id) {
+          getUserAvatar(receivedMessage.senderId).then(avatarURL => {
+            receivedMessage.senderAvatar = avatarURL;
+          });
+        }
 
         // 检查消息是否与当前选中的聊天对象相关
         if (selectedSession.value && (receivedMessage.senderId === selectedSession.value.otherUserId || receivedMessage.recipientId === selectedSession.value.otherUserId)) {
@@ -461,6 +653,37 @@ const connectWebSocket = () => {
     align-items: center;
   }
 
+  .search-user-container {
+    padding: 16px;
+    background-color: #fff;
+    border-bottom: 1px solid #e8e8e8;
+  }
+
+  .search-user-container :deep(.ant-input) {
+    border-radius: 6px;
+    border: 1px solid #d9d9d9;
+    transition: all 0.3s ease;
+  }
+
+  .search-user-container :deep(.ant-input:hover),
+  .search-user-container :deep(.ant-input:focus) {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  }
+
+  .search-user-container :deep(.ant-btn-primary) {
+    background-color: #1890ff;
+    border-color: #1890ff;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .search-user-container :deep(.ant-btn-primary:hover) {
+    background-color: #40a9ff;
+    border-color: #40a9ff;
+    transform: translateY(-1px);
+  }
+
   .loading-container {
     display: flex;
     flex-direction: column;
@@ -546,7 +769,7 @@ const connectWebSocket = () => {
   
   .message-item.sent {
     align-self: flex-end;
-    flex-direction: row-reverse;
+    flex-direction: row;
   }
   
   .message-bubble-wrapper {
@@ -601,6 +824,61 @@ const connectWebSocket = () => {
     padding: 16px 24px;
     background-color: #fff;
     border-top: 1px solid #e8e8e8;
+    position: relative;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #d9d9d9;
+    cursor: ns-resize;
+    transition: background-color 0.2s;
+  }
+
+  .resize-handle:hover {
+    background-color: #1890ff;
+  }
+
+  .message-textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: border-color 0.3s;
+  }
+
+  .message-textarea:focus {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    outline: none;
+  }
+
+  .send-button-container {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .send-button {
+    background-color: #1890ff;
+    border-color: #1890ff;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .send-button:hover {
+    background-color: #40a9ff;
+    border-color: #40a9ff;
+    transform: translateY(-1px);
   }
   
   .empty-chat-window {
