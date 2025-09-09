@@ -31,39 +31,53 @@
     <section class="container">
       <section class="wrapper">
         <header>
-          <h1>创建账户</h1>
+          <h1>NFT 交易系统</h1>
+          <p>用户注册</p>
         </header>
         <section class="main-content">
           <form @submit.prevent="handleRegister">
             <input type="text" placeholder="用户名" v-model="username">
             <div class="line"></div>
             <input type="email" placeholder="邮箱" v-model="email">
-            <div class="validation-text" :class="{ 'error': !isEmailValid && email.length > 0 }">
-              {{ !isEmailValid && email.length > 0 ? '请输入有效的邮箱地址' : '' }}
-            </div>
             <div class="line"></div>
+            <div v-if="!isEmailValid && email.length > 0" class="validation-text error">
+              请输入有效的邮箱地址
+            </div>
             <input type="password" placeholder="密码" v-model="password">
+            <div class="line"></div>
             <div class="validation-text" :class="{ 'weak': passwordStrength === '弱', 'medium': passwordStrength === '中等', 'strong': passwordStrength === '强' }" v-if="password.length > 0">
               密码强度: {{ passwordStrength }}
             </div>
             <div class="line"></div>
-            <div class="checkbox-group">
+            <input type="password" placeholder="确认密码" v-model="confirmPassword">
+            <div class="validation-text" :class="{ 'error': !isPasswordMatch && confirmPassword.length > 0 }" v-if="confirmPassword.length > 0">
+              {{ !isPasswordMatch ? '两次输入的密码不一致' : '密码匹配' }}
+            </div>
+            <div class="line"></div>
+            <div class="organization-group">
               <label>组织:</label>
-              <div class="checkbox-container">
-                <div v-for="org in organizations" :key="org" class="checkbox-item">
-                  <input type="checkbox" :id="org" :value="org" v-model="selectedOrgs">
-                  <label :for="org">{{ org }}</label>
-                </div>
-              </div>
+              <a-radio-group v-model:value="selectedOrg" @change="handleOrgChange">
+                <a-radio 
+                  v-for="org in organizations" 
+                  :key="org.value" 
+                  :value="org.value"
+                  :disabled="org.disabled"
+                >
+                  {{ org.label }}
+                </a-radio>
+              </a-radio-group>
               <div class="validation-text" :class="{ 'error': !isOrgValid }">
-                {{ !isOrgValid ? '请至少选择一个组织' : '' }}
+                {{ !isOrgValid ? '请选择一个组织' : '' }}
+              </div>
+              <div v-if="orgWarning" class="warning-text">
+                {{ orgWarning }}
               </div>
             </div>
             <button type="submit" :disabled="!isFormValid">注册</button>
           </form>
         </section>
         <footer>
-          <p @click="toLogin">已经有账号了?</p>
+          <p @click="toLogin">已经有账号了，去登录</p>
         </footer>
       </section>
     </section>
@@ -72,20 +86,98 @@
 
 <style>
 @import '../assets/auth.css';
+
+.organization-group {
+  margin-bottom: 20px;
+}
+
+.organization-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #333;
+}
+
+.ant-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ant-radio-wrapper {
+  margin-right: 0;
+  margin-bottom: 8px;
+}
+
+.ant-radio-wrapper-disabled {
+  opacity: 0.6;
+}
+
+.warning-text {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 5px 10px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.validation-text.error {
+  color: #ff4d4f;
+}
+
+.validation-text.weak {
+  color: #ff4d4f;
+}
+
+.validation-text.medium {
+  color: #faad14;
+}
+
+.validation-text.strong {
+  color: #52c41a;
+}
+
+.validation-text {
+  font-size: 12px;
+  margin-top: 5px;
+  transition: color 0.3s ease;
+}
 </style>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import axios from 'axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import { accountApi } from '../api';
 
 // 响应式数据
 const username = ref('');
 const email = ref('');
 const password = ref('');
-const organizations = ['平台运营方', 'NFT创作者', '金融机构'];
-const selectedOrgs = ref<string[]>([]);
+const confirmPassword = ref('');
+const selectedOrg = ref<number>(2);
+const orgWarning = ref('');
+
+// 组织选项配置
+const organizations = [
+  { label: '平台运营方', value: 1, disabled: true },
+  { label: 'NFT创作者', value: 2, disabled: false },
+  { label: '金融机构', value: 3, disabled: true }
+];
 
 // 邮箱格式验证
 const isEmailValid = computed(() => {
@@ -114,10 +206,26 @@ const passwordStrength = computed(() => {
   return '弱';
 });
 
+// 密码匹配验证
+const isPasswordMatch = computed(() => {
+  return password.value === confirmPassword.value || confirmPassword.value.length === 0;
+});
+
 // 组织选择验证
 const isOrgValid = computed(() => {
-  return selectedOrgs.value.length > 0;
+  return selectedOrg.value !== null && selectedOrg.value === 2; // 只允许选择NFT创作者
 });
+
+// 组织选择处理函数
+const handleOrgChange = (e: any) => {
+  const value = e.target.value;
+  if (value === 1 || value === 3) {
+    orgWarning.value = '不支持选择该组织，请联系管理员';
+    selectedOrg.value = 2; // 清空选择
+  } else {
+    orgWarning.value = '';
+  }
+};
 
 // 表单整体验证
 const isFormValid = computed(() => {
@@ -125,41 +233,31 @@ const isFormValid = computed(() => {
          isEmailValid.value && 
          passwordStrength.value !== '弱' && 
          passwordStrength.value !== '输入密码...' &&
+         isPasswordMatch.value &&
+         confirmPassword.value.length > 0 &&
          isOrgValid.value;
 });
-
-// 组织转换关系
-const organizationsMap = {
-  "平台运营方": 1,
-  "NFT创作者": 2,
-  "金融机构": 3,
-};
-
-// 转换函数
-const convertOrganizations = (selectedOrgs: string[]) => {
-  return selectedOrgs.map(org => organizationsMap[org as keyof typeof organizationsMap]);
-};
 
 // 注册处理函数
 const handleRegister = async () => {
   if (isFormValid.value) {
     try {
-    const response = await axios.post('http://localhost:8888/api/account/register', {
-      Username: username.value,
-      Email: email.value,
-      Password: password.value,
-      Org: convertOrganizations(selectedOrgs.value),
-    });
-    if (response.status === 200 && response.data.code === 200) {
-      message.success('注册成功！');
-      router.push('/login');
-    } else {
-      message.error(`${response.data.message}`);
+      const response = await accountApi.register(
+        username.value,
+        email.value,
+        password.value,
+        selectedOrg.value
+      );
+      if (response.status === 200 && response.data.code === 200) {
+        message.success('注册成功！');
+        router.push('/login');
+      } else {
+        message.error(`${response.data.message}`);
+      }
+    } catch (error) {
+      message.error('注册请求失败，请检查网络连接。');
+      console.error(error);
     }
-  } catch (error) {
-    message.error('注册请求失败，请检查网络连接。');
-    console.error(error);
-  }
   } else {
     message.error('表单验证失败，无法注册。');
   }

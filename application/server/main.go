@@ -42,6 +42,12 @@ func main() {
 
 	// 注册路由
 	accountHandler := api.NewAccountHandler()
+	walletHandler := api.NewWalletHandler()
+	assetHandler := api.NewAssetHandler()
+	chatHandler, err := api.NewChatHandler()
+	if err != nil {
+		log.Fatalf("创建聊天处理程序失败：%v", err)
+	}
 
 	// 创建JWT中间件
 	jwtMiddleware, err := middleware.NewJWTMiddleware()
@@ -76,13 +82,37 @@ func main() {
 	}
 
 	// 钱包相关接口
-	walletHandler := api.NewWalletHandler()
 	wallet := apiGroup.Group("/wallet").Use(jwtMiddleware.Auth())
 	{
 		wallet.POST("/create", walletHandler.CreateAccount)
-		wallet.GET("/balance", walletHandler.GetBlance)
+		wallet.GET("/balance", walletHandler.GetBalance)
 		wallet.POST("/transfer", walletHandler.Transfer)
-		wallet.GET("/transfer", walletHandler.GetTransfer)
+		wallet.POST("/mintToken", walletHandler.MintToken)
+		wallet.GET("/transferBySenderID", walletHandler.GetTransferBySenderID)
+		wallet.GET("/transferByRecipientID", walletHandler.GetTransferByRecipientID)
+		wallet.POST("/withHoldAccount", walletHandler.WithHoldAccount)
+		wallet.GET("/getWithHoldingByAccountID", walletHandler.GetWithHoldingByAccountID)
+		wallet.GET("/getWithHoldingByListingID", walletHandler.GetWithHoldingByListingID)
+		wallet.POST("/clearWithHolding", walletHandler.ClearWithHolding)
+	}
+
+	// 资产相关接口
+	asset := apiGroup.Group("/asset").Use(jwtMiddleware.Auth())
+	{
+		asset.POST("/create", assetHandler.CreateAsset)
+		asset.GET("/getAssetByID", assetHandler.GetAssetByID)
+		asset.GET("/getAssetByAuthorID", assetHandler.GetAssetByAuthorID)
+		asset.GET("/getAssetByOwnerID", assetHandler.GetAssetByOwnerID)
+		asset.POST("/transfer", assetHandler.TransferAsset)
+	}
+
+	// 聊天相关接口
+	chat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
+	{
+		chat.GET("/ws", chatHandler.SendMessage)
+		chat.GET("/getChatSession", chatHandler.GetChatSession)
+		chat.GET("/getMessages", chatHandler.GetMessages)
+		chat.POST("/readMessages", chatHandler.ReadMessages)
 	}
 
 	// 打印路由信息

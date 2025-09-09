@@ -12,7 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 type AccountHandler struct {
@@ -206,8 +205,8 @@ func (h *AccountHandler) UpdateOrg(c *gin.Context) {
 		utils.ServerError(c, "用户组织获取失败")
 		return
 	}
-	if !model.CheckOrg(org.(pq.Int32Array), 1) {
-		utils.ServerError(c, "用户不属于组织")
+	if org.(int) != 1 {
+		utils.ServerError(c, "只有平台管理员可以更新用户组织")
 		return
 	}
 	var req model.UpdateOrgRequest

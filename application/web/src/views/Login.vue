@@ -39,11 +39,12 @@
             <input type="text" placeholder="用户名" v-model="username" autocomplete="username">
             <div class="line"></div>
             <input type="password" placeholder="密码" v-model="password" autocomplete="current-password">
+            <div class="line"></div>
             <button type="submit">登录</button>
           </form>
         </section>
         <footer>
-          <p @click="toRegister">还没有账号?</p>
+          <p @click="toRegister">还没有账号，去注册</p>
         </footer>
       </section>
     </section>
@@ -56,9 +57,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import { accountApi } from '../api';
 
 // 响应式变量，用于存储用户输入
 const username = ref('');
@@ -73,23 +75,16 @@ const handleLogin = async () => {
   }
 
   try {
-    const response = await axios.post('http://localhost:8888/api/account/login', {
-      Username: username.value,
-      Password: password.value,
-    });
+    const response = await accountApi.login(username.value, password.value);
     
     // 检查响应状态码和业务代码
     if (response.status === 200 && response.data.code === 200) {
       localStorage.setItem('userToken', response.data.data.token);
       localStorage.setItem('userInfo', JSON.stringify(response.data.data.user));
-      // 设置axios的默认请求头，这样后续所有请求都会自动携带JWT
-      // 这样做是无害的，因为即使后端接口不需要JWT，也不会影响请求
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
       message.success('登录成功！');
       
       // 检查路由查询参数中是否有 redirect
       const redirectPath = router.currentRoute.value.query.redirect as string;
-
       // 如果有 redirect 参数，跳转到该路径，否则跳转到默认页面
       if (redirectPath) {
         router.push(redirectPath);
@@ -100,7 +95,7 @@ const handleLogin = async () => {
       message.error(`${response.data.message}`);
     }
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
+    if (isAxiosError(error) && error.response) {
       message.error(`${error.response.data.message || '用户名或密码错误'}`);
     } else {
       message.error('登录请求失败，请检查网络连接。');

@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/hyperledger/fabric-gateway v1.7.0
 	github.com/hyperledger/fabric-protos-go-apiv2 v0.3.4
 	go.etcd.io/bbolt v1.3.11
@@ -13,8 +14,6 @@ require (
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.2
 )
-
-require github.com/lib/pq v1.10.9 // direct
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect

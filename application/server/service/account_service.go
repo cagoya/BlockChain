@@ -2,11 +2,11 @@ package service
 
 import (
 	"application/model"
+	"application/pkg/fabric"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -27,7 +27,7 @@ func NewAccountService() (*AccountService, error) {
 // 用户注册
 func (s *AccountService) Register(req *model.RegisterRequest) error {
 	// 只允许直接注册创作者身份
-	if req.Org[0] != 2 || len(req.Org) > 1 {
+	if req.Org != 2 {
 		return fmt.Errorf("只允许直接注册创作者身份")
 	}
 	// 检查用户名是否已存在
@@ -60,6 +60,17 @@ func (s *AccountService) Register(req *model.RegisterRequest) error {
 	err = s.db.Create(user).Error
 	if err != nil {
 		return fmt.Errorf("保存用户失败：%v", err)
+	}
+
+	// 创建钱包
+	orgName, err := model.GetOrg(user.Org)
+	if err != nil {
+		return fmt.Errorf("获取组织失败：%v", err)
+	}
+	contract := fabric.GetContract(orgName)
+	_, err = contract.SubmitTransaction("CreateAccount", fmt.Sprintf("%d", user.ID))
+	if err != nil {
+		return fmt.Errorf("钱包开通失败：%s", fabric.ExtractErrorMessage(err))
 	}
 
 	return nil
@@ -188,7 +199,7 @@ func (s *AccountService) UpdateAvatar(userID int, newAvatarName string) (string,
 
 // 更新组织
 
-func (s *AccountService) UpdateOrg(userID int, org pq.Int32Array) error {
+func (s *AccountService) UpdateOrg(userID int, org int) error {
 	var user model.User
 	err := s.db.Where("id = ?", userID).First(&user).Error
 	if err != nil {

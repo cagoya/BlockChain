@@ -17,16 +17,23 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/market',
-      component: () => import('../views/Market.vue'),
+      path: '/asset/upload',
+      component: () => import('../views/AssetUpload.vue'),
+      meta: { requiresAuth: true },
     },
     {
-      path: '/userManagement',
-      component: () => import('../views/UserManagement.vue'),
+      path: '/asset/search',
+      component: () => import('../views/AssetSearch.vue'),
+      meta: { requiresAuth: true },
     },
     {
-      path: '/test',
-      component: () => import('../views/Test.vue'),
+      path: '/chat',
+      component: () => import('../views/Chat.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/wallet',
+      component: () => import('../views/Wallet.vue'),
     },
     {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径
@@ -36,7 +43,7 @@ const router = createRouter({
 })
 
 // 添加全局前置守卫，用于检查是否登录
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth) {
     // 检查本地存储中是否存在 token
     const token = localStorage.getItem('userToken');
