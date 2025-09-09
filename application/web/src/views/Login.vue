@@ -57,7 +57,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { isAxiosError } from 'axios';
 import { message } from 'ant-design-vue';
 import router from '../router';
 import { accountApi } from '../api';
@@ -95,12 +94,8 @@ const handleLogin = async () => {
       message.error(`${response.data.message}`);
     }
   } catch (error) {
-    if (isAxiosError(error) && error.response) {
-      message.error(`${error.response.data.message || '用户名或密码错误'}`);
-    } else {
-      message.error('登录请求失败，请检查网络连接。');
-      console.error(error);
-    }
+    message.error(`用户名或密码错误`);
+    console.error(error);
   }
 };
 

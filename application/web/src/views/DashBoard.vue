@@ -108,12 +108,13 @@ interface UserInfo {
   username: string;
   avatarURL: string;
 }
+import { backendURL } from '../api/index';
 
 const router = useRouter();
 
 const user = ref<UserInfo>({
   username: '游客',
-  avatarURL: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+  avatarURL: ''
 });
 
 const popoverVisible = ref<boolean>(false);
@@ -132,6 +133,11 @@ onMounted(() => {
   loadUserInfo();
 });
 
+// 获取图片完整URL
+const getImageUrl = (imageName: string) => {
+  return `${backendURL.replace('/api', '')}/public/images/${imageName}`;
+};
+
 // 加载用户信息
 const loadUserInfo = () => {
   const userInfoString = localStorage.getItem('userInfo');
@@ -139,7 +145,7 @@ const loadUserInfo = () => {
     try {
       const parsedUserInfo = JSON.parse(userInfoString);
       user.value.username = parsedUserInfo.username || user.value.username;
-      user.value.avatarURL = parsedUserInfo.avatarURL || user.value.avatarURL;
+      user.value.avatarURL = getImageUrl(parsedUserInfo.avatarURL) || user.value.avatarURL;
       userInfo.value.id = parsedUserInfo.id || userInfo.value.id;
       userInfo.value.username = parsedUserInfo.username || userInfo.value.username;
       userInfo.value.email = parsedUserInfo.email || userInfo.value.email;
@@ -191,7 +197,7 @@ const handleLogout = async () => {
 
 // 头像上传成功处理
 const handleAvatarUploadSuccess = (avatarUrl: string) => {
-  user.value.avatarURL = avatarUrl;
+  user.value.avatarURL = getImageUrl(avatarUrl);
   
   // 更新 localStorage
   const userInfoString = localStorage.getItem('userInfo');

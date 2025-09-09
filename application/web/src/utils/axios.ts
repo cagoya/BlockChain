@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { backendURL } from '../api/index'
 
 // 创建axios实例
 const instance = axios.create({
-  baseURL: 'http://localhost:8888',
+  baseURL: backendURL.replace('/api', ''),
   timeout: 10000,
 })
 

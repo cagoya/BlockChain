@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"strings"
 
@@ -221,4 +222,18 @@ func (h *AccountHandler) UpdateOrg(c *gin.Context) {
 		return
 	}
 	utils.SuccessWithMessage(c, "更新成功", nil)
+}
+
+func (h *AccountHandler) GetUserNameById(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		utils.BadRequest(c, "请求参数格式错误")
+		return
+	}
+	userName, err := h.accountService.GetUserNameById(userID)
+	if err != nil {
+		utils.ServerError(c, "获取用户名失败："+err.Error())
+		return
+	}
+	utils.Success(c, userName)
 }

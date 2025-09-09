@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+export const backendURL = 'http://10.162.199.212:8888/api';
+
 // 创建axios实例
 const instance = axios.create({
-  baseURL: '/api', // 基础API路径
+  baseURL: backendURL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json'
@@ -118,7 +120,16 @@ const accountApi = {
    */
   getProfile: () => {
     return instance.get('/account/profile');
+  },
+
+  /**
+   * 获取用户名
+   * @param userId 用户ID
+   */
+  getUserNameById: (userId: number) => {
+    return instance.get(`/account/userName?id=${userId}`);
   }
+
 };
 
 // 资产相关API
@@ -217,12 +228,47 @@ const walletApi = {
 }
 };
 
+// 聊天相关API
+const chatApi = {
+  /**
+   * 获取聊天会话列表
+   */
+  getChatSessions: () => {
+    return instance.get('/chat/getChatSession');
+  },
+
+  /**
+   * 获取与指定用户的消息记录
+   * @param otherId 对方用户ID
+   */
+  getMessages: (otherId: number) => {
+    return instance.get(`/chat/getMessages?otherID=${otherId}`);
+  },
+
+  /**
+   * 标记消息为已读
+   * @param otherId 对方用户ID
+   */
+  readMessages: (otherId: number) => {
+    return instance.post(`/chat/readMessages?otherID=${otherId}`);
+  },
+
+  /**
+   * 获取未读消息数量
+   * @param otherId 对方用户ID
+   */
+  getUnreadMessageCount: (otherId: number) => {
+    return instance.get(`/chat/getUnreadMessageCount?otherID=${otherId}`);
+  }
+};
+
 // 导出所有API模块
-export { accountApi, assetApi, walletApi };
+export { accountApi, assetApi, walletApi, chatApi };
 
 // 默认导出包含所有API的对象
 export default {
   account: accountApi,
   asset: assetApi,
-  wallet: walletApi
+  wallet: walletApi,
+  chat: chatApi
 };

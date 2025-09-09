@@ -35,9 +35,11 @@ defineProps<{
   isSelected?: boolean;
 }>();
 
+import { backendURL } from '../api/index';
+
 // 获取图片完整URL
 const getImageUrl = (imageName: string) => {
-  return `http://localhost:8888/public/images/${imageName}`;
+  return `${backendURL.replace('/api', '')}/public/images/${imageName}`;
 };
 
 // 格式化日期

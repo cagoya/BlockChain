@@ -79,6 +79,8 @@ func main() {
 		authAccount.PUT("/avatar", accountHandler.UpdateAvatar)
 		// 更新组织接口
 		authAccount.PUT("/org", accountHandler.UpdateOrg)
+		// 获取用户名
+		authAccount.GET("/userName", accountHandler.GetUserNameById)
 	}
 
 	// 钱包相关接口
@@ -106,13 +108,20 @@ func main() {
 		asset.POST("/transfer", assetHandler.TransferAsset)
 	}
 
-	// 聊天相关接口
-	chat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
+	// 聊天相关接口（无需认证），主要是因为websocket
+	// token 携带在url中
+	chat := apiGroup.Group("/chat")
 	{
 		chat.GET("/ws", chatHandler.SendMessage)
-		chat.GET("/getChatSession", chatHandler.GetChatSession)
-		chat.GET("/getMessages", chatHandler.GetMessages)
-		chat.POST("/readMessages", chatHandler.ReadMessages)
+	}
+
+	// 需要认证的聊天接口
+	authChat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
+	{
+		authChat.GET("/getChatSession", chatHandler.GetChatSession)
+		authChat.GET("/getMessages", chatHandler.GetMessages)
+		authChat.POST("/readMessages", chatHandler.ReadMessages)
+		authChat.GET("/getUnreadMessageCount", chatHandler.GetUnreadMessageCount)
 	}
 
 	// 打印路由信息
