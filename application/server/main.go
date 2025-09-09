@@ -85,7 +85,7 @@ func main() {
 	wallet := apiGroup.Group("/wallet").Use(jwtMiddleware.Auth())
 	{
 		wallet.POST("/create", walletHandler.CreateAccount)
-		wallet.GET("/balance", walletHandler.GetBlance)
+		wallet.GET("/balance", walletHandler.GetBalance)
 		wallet.POST("/transfer", walletHandler.Transfer)
 		wallet.POST("/mintToken", walletHandler.MintToken)
 		wallet.GET("/transferBySenderID", walletHandler.GetTransferBySenderID)

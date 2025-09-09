@@ -5,8 +5,9 @@ import (
 	"application/pkg/fabric"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type WalletService struct{}
@@ -28,13 +29,13 @@ func (s *WalletService) CreateAccount(id int, org int) error {
 	return nil
 }
 
-func (s *WalletService) GetBlance(id int, org int) (int, error) {
+func (s *WalletService) GetBalance(id int, org int) (int, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
 		return 0, fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	result, err := contract.EvaluateTransaction("GetBlance", fmt.Sprintf("%d", id))
+	result, err := contract.EvaluateTransaction("GetBalance", fmt.Sprintf("%d", id))
 	if err != nil {
 		return 0, fmt.Errorf("获取余额失败：%s", fabric.ExtractErrorMessage(err))
 	}
@@ -46,13 +47,13 @@ func (s *WalletService) GetBlance(id int, org int) (int, error) {
 	return balance, nil
 }
 
-func (s *WalletService) Transfer(senderID int, recipientID int, amount int, org int) error {
+func (s *WalletService) Transfer(senderId int, recipientId int, amount int, org int) error {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
 		return fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	_, err = contract.SubmitTransaction("Transfer", uuid.New().String(), fmt.Sprintf("%d", senderID), fmt.Sprintf("%d", recipientID), fmt.Sprintf("%d", amount), time.Now().Format(time.RFC3339))
+	_, err = contract.SubmitTransaction("Transfer", uuid.New().String(), fmt.Sprintf("%d", senderId), fmt.Sprintf("%d", recipientId), fmt.Sprintf("%d", amount), time.Now().Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("转账失败：%s", fabric.ExtractErrorMessage(err))
 	}
@@ -72,13 +73,13 @@ func (s *WalletService) MintToken(accountID int, amount int, org int) error {
 	return nil
 }
 
-func (s *WalletService) GetTransferBySenderID(senderID int, org int) ([]model.Transfer, error) {
+func (s *WalletService) GetTransferBySenderID(senderId int, org int) ([]model.Transfer, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
 		return nil, fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	results, err := contract.EvaluateTransaction("GetTransferBySenderID", fmt.Sprintf("%d", senderID))
+	results, err := contract.EvaluateTransaction("GetTransferBySenderID", fmt.Sprintf("%d", senderId))
 	if err != nil {
 		return nil, fmt.Errorf("获取转账记录失败：%s", fabric.ExtractErrorMessage(err))
 	}
@@ -92,13 +93,13 @@ func (s *WalletService) GetTransferBySenderID(senderID int, org int) ([]model.Tr
 	return transfers, nil
 }
 
-func (s *WalletService) GetTransferByRecipientID(recipientID int, org int) ([]model.Transfer, error) {
+func (s *WalletService) GetTransferByRecipientID(recipientId int, org int) ([]model.Transfer, error) {
 	orgName, err := model.GetOrg(org)
 	if err != nil {
 		return nil, fmt.Errorf("获取组织失败：%s", err)
 	}
 	contract := fabric.GetContract(orgName)
-	results, err := contract.EvaluateTransaction("GetTransferByRecipientID", fmt.Sprintf("%d", recipientID))
+	results, err := contract.EvaluateTransaction("GetTransferByRecipientID", fmt.Sprintf("%d", recipientId))
 	if err != nil {
 		return nil, fmt.Errorf("获取转账记录失败：%s", fabric.ExtractErrorMessage(err))
 	}

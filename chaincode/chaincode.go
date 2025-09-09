@@ -38,8 +38,8 @@ type Account struct {
 // 转账记录
 type Transfer struct {
 	ID          string    `json:"id"`
-	SenderID    int       `json:"senderID"`
-	RecipientID int       `json:"recipientID"`
+	SenderID    int       `json:"senderId"`
+	RecipientID int       `json:"recipientId"`
 	Amount      int       `json:"amount"`
 	TimeStamp   time.Time `json:"timeStamp"`
 }
@@ -156,7 +156,7 @@ func (s *SmartContract) CreateAccount(ctx contractapi.TransactionContextInterfac
 }
 
 // 获取余额
-func (s *SmartContract) GetBlance(ctx contractapi.TransactionContextInterface, id int) (int, error) {
+func (s *SmartContract) GetBalance(ctx contractapi.TransactionContextInterface, id int) (int, error) {
 	var account Account
 	key, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", id)})
 	if err != nil {
@@ -170,17 +170,17 @@ func (s *SmartContract) GetBlance(ctx contractapi.TransactionContextInterface, i
 }
 
 // 转账
-func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id string, senderID int, recipientID int, amount int, timeStamp time.Time) error {
+func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id string, senderId int, recipientId int, amount int, timeStamp time.Time) error {
 	// 转账金额检查
 	if amount <= 0 {
 		return fmt.Errorf("转账金额必须大于 0")
 	}
 	// 检查发送方和接收方是否是同一个账户
-	if senderID == recipientID {
+	if senderId == recipientId {
 		return fmt.Errorf("发送方和接收方不能是同一个账户")
 	}
 	var senderAccount Account
-	key1, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", senderID)})
+	key1, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", senderId)})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -189,7 +189,7 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 		return fmt.Errorf("查询发送方账户失败：%v", err)
 	}
 	var recipientAccount Account
-	key2, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", recipientID)})
+	key2, err := s.getCompositeKey(ctx, ACCOUNT_KEY, []string{fmt.Sprintf("%d", recipientId)})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败：%v", err)
 	}
@@ -199,7 +199,7 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 	}
 	// 发送方余额检查
 	if senderAccount.Balance < amount {
-		return fmt.Errorf("发送方账户 %d 余额不足", senderID)
+		return fmt.Errorf("发送方账户 %d 余额不足", senderId)
 	}
 	senderAccount.Balance -= amount
 	recipientAccount.Balance += amount
@@ -224,8 +224,8 @@ func (s *SmartContract) Transfer(ctx contractapi.TransactionContextInterface, id
 	// 添加转账记录
 	transfer := Transfer{
 		ID:          id,
-		SenderID:    senderID,
-		RecipientID: recipientID,
+		SenderID:    senderId,
+		RecipientID: recipientId,
 		Amount:      amount,
 		TimeStamp:   timeStamp,
 	}
@@ -278,9 +278,9 @@ func (s *SmartContract) MintToken(ctx contractapi.TransactionContextInterface, a
 }
 
 // 查询某个账户的转账转出记录
-func (s *SmartContract) GetTransferBySenderID(ctx contractapi.TransactionContextInterface, senderID int) ([]Transfer, error) {
+func (s *SmartContract) GetTransferBySenderID(ctx contractapi.TransactionContextInterface, senderId int) ([]Transfer, error) {
 	var transfers []Transfer
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(SENDER_KEY, []string{fmt.Sprintf("%d", senderID)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(SENDER_KEY, []string{fmt.Sprintf("%d", senderId)})
 	if err != nil {
 		return nil, fmt.Errorf("查询转账记录失败：%v", err)
 	}
@@ -300,9 +300,9 @@ func (s *SmartContract) GetTransferBySenderID(ctx contractapi.TransactionContext
 }
 
 // 查询某个账户的转账转入记录
-func (s *SmartContract) GetTransferByRecipientID(ctx contractapi.TransactionContextInterface, recipientID int) ([]Transfer, error) {
+func (s *SmartContract) GetTransferByRecipientID(ctx contractapi.TransactionContextInterface, recipientId int) ([]Transfer, error) {
 	var transfers []Transfer
-	results, err := ctx.GetStub().GetStateByPartialCompositeKey(RECIPIENT_KEY, []string{fmt.Sprintf("%d", recipientID)})
+	results, err := ctx.GetStub().GetStateByPartialCompositeKey(RECIPIENT_KEY, []string{fmt.Sprintf("%d", recipientId)})
 	if err != nil {
 		return nil, fmt.Errorf("查询转账记录失败：%v", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"application/model"
 	"application/service"
 	"application/utils"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +37,8 @@ func (h *WalletHandler) CreateAccount(c *gin.Context) {
 	utils.Success(c, "钱包开通成功")
 }
 
-func (h *WalletHandler) GetBlance(c *gin.Context) {
+// 在 WalletHandler 的 GetBalance 方法中增加账户自动创建逻辑
+func (h *WalletHandler) GetBalance(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
 		utils.ServerError(c, "用户信息获取失败")
@@ -47,12 +49,24 @@ func (h *WalletHandler) GetBlance(c *gin.Context) {
 		utils.ServerError(c, "组织信息获取失败")
 		return
 	}
-	blance, err := h.walletService.GetBlance(userID.(int), org.(int))
+
+	// 先尝试查询余额
+	balance, err := h.walletService.GetBalance(userID.(int), org.(int))
 	if err != nil {
-		utils.ServerError(c, err.Error())
-		return
+		// 若查询失败，尝试创建账户
+		createErr := h.walletService.CreateAccount(userID.(int), org.(int))
+		if createErr != nil {
+			utils.ServerError(c, fmt.Sprintf("余额查询失败且账户创建失败：%v", createErr))
+			return
+		}
+		// 账户创建后重新查询余额
+		balance, err = h.walletService.GetBalance(userID.(int), org.(int))
+		if err != nil {
+			utils.ServerError(c, err.Error())
+			return
+		}
 	}
-	utils.Success(c, blance)
+	utils.Success(c, balance)
 }
 
 func (h *WalletHandler) Transfer(c *gin.Context) {
@@ -71,9 +85,9 @@ func (h *WalletHandler) Transfer(c *gin.Context) {
 		utils.BadRequest(c, err.Error())
 		return
 	}
-	recipientID := transferRequest.RecipientID
+	recipientId := transferRequest.RecipientID
 	amount := transferRequest.Amount
-	err := h.walletService.Transfer(userID.(int), recipientID, amount, org.(int))
+	err := h.walletService.Transfer(userID.(int), recipientId, amount, org.(int))
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return
