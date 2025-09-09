@@ -57,6 +57,19 @@
         </a-tabs>
       </div>
 
+
+      <!-- 我的NFT资产（保持不变） -->
+      <div class="my-nfts">
+        <h3>我的NFT资产</h3>
+        <div class="nft-list" v-if="nfts.length > 0">
+          <AssetCard 
+            v-for="nft in nfts" 
+            :key="nft.id" 
+            :asset="nft" 
+          />
+        </div>
+        <p v-else class="no-nft">暂无NFT资产</p>
+      </div>
     </main>
   </div>
 </template>
@@ -92,6 +105,16 @@ interface TransferRecord {
   timeStamp: string;
 }
 
+interface Asset {
+  id: string;
+  name: string;
+  description: string;
+  imageName: string;
+  authorId: number;
+  ownerId: number;
+  timeStamp: string;
+}
+
 
 // 状态定义
 const user = ref<UserInfo>({
@@ -111,6 +134,7 @@ const errors = ref({
 });
 const sentTransfers = ref<TransferRecord[]>([]);
 const receivedTransfers = ref<TransferRecord[]>([]);
+const nfts = ref<Asset[]>([]);
 
 // 转账记录表格列定义（保持不变）
 const transferColumns = [
@@ -141,6 +165,7 @@ const transferColumns = [
     key: 'timeStamp',
   }
 ];
+
 
 // 加载数据的方法（保持不变）
 const loadUserInfo = () => {
@@ -440,4 +465,36 @@ onMounted(() => {
   color: #333;
 }
 
+/* NFT列表样式 */
+.my-nfts {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.my-nfts h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.nft-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.no-nft {
+  text-align: center;
+  padding: 40px 0;
+  color: #888;
+}
+
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .nft-list {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
 </style>

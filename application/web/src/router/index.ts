@@ -40,6 +40,11 @@ const router = createRouter({
       component: () => import('../views/MyAsset.vue'),
     },
     {
+      path: '/wallet/withhold',
+      component: () => import('../views/Withhold.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/market',
       component: () => import('../views/Market.vue'),
       meta: { requiresAuth: true },
