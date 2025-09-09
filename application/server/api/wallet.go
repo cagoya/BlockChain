@@ -85,14 +85,14 @@ func (h *WalletHandler) Transfer(c *gin.Context) {
 		utils.BadRequest(c, err.Error())
 		return
 	}
-	recipientId := transferRequest.RecipientID
+	recipientID := transferRequest.RecipientID
 	amount := transferRequest.Amount
-	err := h.walletService.Transfer(userID.(int), recipientId, amount, org.(int))
+	txid, err := h.walletService.Transfer(userID.(int), recipientID, amount, org.(int))
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return
 	}
-	utils.Success(c, "转账成功")
+	utils.Success(c, gin.H{"message": "转账成功", "txid": txid})
 }
 
 func (h *WalletHandler) MintToken(c *gin.Context) {
@@ -167,16 +167,21 @@ func (h *WalletHandler) WithHoldAccount(c *gin.Context) {
 		utils.ServerError(c, "组织信息获取失败")
 		return
 	}
-	var withHoldingRequest model.WithHoldingRequest
-	if err := c.ShouldBindJSON(&withHoldingRequest); err != nil {
+
+	var req model.WithHoldingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, err.Error())
 		return
 	}
-	err := h.walletService.WithHoldAccount(userID.(int), withHoldingRequest.ListingID, withHoldingRequest.Amount, org.(int))
+
+	orgInt := org.(int)
+
+	_, _, err := h.walletService.WithHoldAccount(userID.(int), req.ListingID, req.Amount, orgInt)
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return
 	}
+
 	utils.Success(c, "预扣款成功")
 }
 
