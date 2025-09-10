@@ -45,6 +45,11 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/wallet/mintToken',
+      component: () => import('../views/MintToken.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/market',
       component: () => import('../views/Market.vue'),
       meta: { requiresAuth: true },
