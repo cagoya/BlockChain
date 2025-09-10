@@ -6,6 +6,7 @@
     <div class="asset-info">
       <h3 class="asset-name">{{ asset.name }}</h3>
       <div class="asset-meta">
+        <p class="asset-id">ID: {{ asset.id }}</p>
         <p class="asset-author">创作者ID: {{ asset.authorId }}</p>
         <p class="asset-owner">拥有者ID: {{ asset.ownerId }}</p>
         <p class="asset-created-at">铸造时间: {{ formatDate(asset.timeStamp) }}</p>
@@ -124,6 +125,12 @@ const formatDate = (dateString: string) => {
   font-size: 12px;
 }
 
+.asset-id {
+  font-size: 10px;
+  color: #3aabe4;
+  line-height: 1.4;
+  margin: 2px 0;
+}
 .asset-author,
 .asset-owner,
 .asset-created-at {

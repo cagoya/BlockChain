@@ -57,19 +57,6 @@
         </a-tabs>
       </div>
 
-
-      <!-- 我的NFT资产（保持不变） -->
-      <div class="my-nfts">
-        <h3>我的NFT资产</h3>
-        <div class="nft-list" v-if="nfts.length > 0">
-          <AssetCard 
-            v-for="nft in nfts" 
-            :key="nft.id" 
-            :asset="nft" 
-          />
-        </div>
-        <p v-else class="no-nft">暂无NFT资产</p>
-      </div>
     </main>
   </div>
 </template>
@@ -105,16 +92,6 @@ interface TransferRecord {
   timeStamp: string;
 }
 
-interface Asset {
-  id: string;
-  name: string;
-  description: string;
-  imageName: string;
-  authorId: number;
-  ownerId: number;
-  timeStamp: string;
-}
-
 
 // 状态定义
 const user = ref<UserInfo>({
@@ -134,7 +111,6 @@ const errors = ref({
 });
 const sentTransfers = ref<TransferRecord[]>([]);
 const receivedTransfers = ref<TransferRecord[]>([]);
-const nfts = ref<Asset[]>([]);
 
 // 转账记录表格列定义（保持不变）
 const transferColumns = [

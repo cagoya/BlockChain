@@ -46,6 +46,8 @@ func main() {
 	assetHandler := api.NewAssetHandler()
 	chatHandler, err := api.NewChatHandler()
 	marketHandler := api.NewMarketHandler()
+	auctionHandler := api.NewAuctionHandler()
+
 	if err != nil {
 		log.Fatalf("创建聊天处理程序失败：%v", err)
 	}
@@ -133,6 +135,21 @@ func main() {
 		market.POST("/offer/:id/accept", marketHandler.AcceptOffer)
 		market.POST("/offer/:id/cancel", marketHandler.CancelOffer)
 		market.GET("/offers/mine", marketHandler.ListMyOffers)
+	}
+
+	// 拍卖相关接口
+	auction := apiGroup.Group("/auction", jwtMiddleware.Auth())
+	{
+		auction.POST("/create", auctionHandler.CreateLot)
+		auction.PUT("/update", auctionHandler.UpdateLotByID)
+		auction.POST("/cancel", auctionHandler.CancelLot)
+		auction.GET("/list", auctionHandler.GetAllLots)
+		auction.GET("/seller", auctionHandler.GetLotBySellerID)
+		auction.POST("/bid", auctionHandler.SubmitBid)
+		auction.GET("/bid", auctionHandler.GetBidPrice)
+		auction.GET("/maxBid", auctionHandler.GetMaxBidPrice)
+		auction.GET("/result", auctionHandler.GetAuctionResult)
+		auction.POST("/finish", auctionHandler.FinishAuction)
 	}
 
 	// 打印路由信息
