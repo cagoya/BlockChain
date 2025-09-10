@@ -50,6 +50,11 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/market/sell',
+      component: () => import('../views/SellAsset.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/:pathMatch(.*)*', // 匹配所有未匹配的路径
       component: () => import('../views/404.vue'),
     }

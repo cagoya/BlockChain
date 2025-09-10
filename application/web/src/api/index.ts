@@ -176,7 +176,16 @@ const assetApi = {
    */
   getByOwnerId: (ownerId: string) => {
     return instance.get(`/asset/getAssetByOwnerID?ownerId=${ownerId}`);
+  },
+
+  /**
+   * 获取资产状态
+   * @param id 资产ID
+   */
+  getStatus: (id: string) => {
+    return instance.get(`/asset/getStatus?id=${id}`);
   }
+
 };
 
 // 钱包相关API
@@ -288,13 +297,87 @@ const chatApi = {
   }
 };
 
+// 拍卖相关API
+const auctionApi = {
+  /**
+   * 创建拍卖品
+   * @param auctionData 拍卖品数据 {assetId, title, reservePrice, startTime, deadline}
+   */
+  create: (auctionData: any) => {
+    return instance.post('/auction/create', auctionData);
+  },
+
+  /**
+   * 更新拍卖品
+   * @param auctionData 拍卖品数据 {assetId, title, reservePrice}
+   */
+  update: (auctionData: any) => {
+    return instance.put('/auction/update', auctionData);
+  },
+  
+  /**
+   * 取消拍卖品
+   * @param assetId 资产ID
+   */
+  cancel: (assetId: string) => {
+    return instance.post(`/auction/cancel?assetID=${assetId}`);
+  },
+  
+  /**
+   * 列出所有拍卖品
+   */
+  list: () => {
+    return instance.get('/auction/list');
+  },
+  
+  /**
+   * 按照出售者获取拍卖品
+   */
+  getBySeller: () => {
+    return instance.get('/auction/seller');
+  },
+
+  /**
+   * 出价
+   * @param bidData 出价数据 {lotId, bidPrice}
+   */
+  bid: (bidData: any) => {
+    return instance.post('/auction/bid', bidData);
+  },
+
+  /**
+   * 获取当前用户的出价
+   * @param lotId 拍卖品ID
+   */
+  getBid: (lotId: number) => {
+    return instance.get(`/auction/bid?lotID=${lotId}`);
+  },
+
+  /**
+   * 获取最高出价
+   * @param lotId 拍卖品ID
+   */
+  getMaxBid: (lotId: number) => {
+    return instance.get(`/auction/maxBid?lotID=${lotId}`);
+  },
+
+  /**
+   * 获取拍卖结果
+   * @param lotId 拍卖品ID
+   */
+  getResult: (lotId: number) => {
+    return instance.get(`/auction/result?lotID=${lotId}`);
+  }
+};
+
 // 导出所有API模块
-export { accountApi, assetApi, walletApi, chatApi };
+export { accountApi, assetApi, walletApi, chatApi, auctionApi };
 
 // 默认导出包含所有API的对象
 export default {
   account: accountApi,
   asset: assetApi,
   wallet: walletApi,
-  chat: chatApi
+  chat: chatApi,
+  auction: auctionApi
 };

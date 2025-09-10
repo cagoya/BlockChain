@@ -109,6 +109,7 @@ func main() {
 		asset.GET("/getAssetByAuthorID", assetHandler.GetAssetByAuthorID)
 		asset.GET("/getAssetByOwnerID", assetHandler.GetAssetByOwnerID)
 		asset.POST("/transfer", assetHandler.TransferAsset)
+		asset.GET("/getStatus", assetHandler.GetAssetStatus)
 	}
 
 	// 聊天相关接口（无需认证），主要是因为websocket

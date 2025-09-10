@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"time"
+
+	"gorm.io/gorm"
 )
 
-type AssetService struct{}
+type AssetService struct {
+	db *gorm.DB
+}
 
-func NewAssetService() *AssetService {
-	return &AssetService{}
+func NewAssetService(db *gorm.DB) *AssetService {
+	return &AssetService{db: db}
 }
 
 // 创建 nft 资产
@@ -108,4 +112,24 @@ func (s *AssetService) TransferAsset(id string, newOwnerId int, userID int, org 
 		return fmt.Errorf("转移NFT失败：%s", fabric.ExtractErrorMessage(err))
 	}
 	return nil
+}
+
+// 查询 NFT 资产状态
+// 0: 未上架
+// 1: 普通出售
+// 2: 拍卖中
+func (s *AssetService) GetAssetStatus(id string) (int, error) {
+	// 查询是否有对应的 listing 是 OPEN 状态
+	listing := model.MarketListing{}
+	err := s.db.Where("asset_id = ? and status = ?", id, model.ListingActive).First(&listing).Error
+	if err == nil {
+		return 1, nil
+	}
+	// 查询是否有对应的 lot 是有效状态
+	lot := model.Lot{}
+	err = s.db.Where("asset_id = ? and valid = true", id).First(&lot).Error
+	if err == nil {
+		return 2, nil
+	}
+	return 0, nil
 }
