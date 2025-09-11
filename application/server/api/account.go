@@ -5,8 +5,8 @@ import (
 	"application/service"
 	"application/utils"
 	"fmt"
-	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"strings"
 
@@ -151,18 +151,17 @@ func (h *AccountHandler) UpdateProfile(c *gin.Context) {
 }
 
 func (h *AccountHandler) GetAvatar(c *gin.Context) {
-	// 从上下文中获取用户ID（由中间件设置）
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
 		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	avatarURL, err := h.accountService.GetAvatarById(userID.(int))
+	avatarURL, err := h.accountService.GetAvatarById(userID)
 	if err != nil {
 		utils.ServerError(c, "获取头像失败："+err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"avatarURL": avatarURL})
+	utils.Success(c, avatarURL)
 }
 
 func (h *AccountHandler) UpdateAvatar(c *gin.Context) {
@@ -221,4 +220,18 @@ func (h *AccountHandler) UpdateOrg(c *gin.Context) {
 		return
 	}
 	utils.SuccessWithMessage(c, "更新成功", nil)
+}
+
+func (h *AccountHandler) GetUserNameById(c *gin.Context) {
+	userID, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		utils.BadRequest(c, "请求参数格式错误")
+		return
+	}
+	userName, err := h.accountService.GetUserNameById(userID)
+	if err != nil {
+		utils.ServerError(c, "获取用户名失败："+err.Error())
+		return
+	}
+	utils.Success(c, userName)
 }

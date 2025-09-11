@@ -1,14 +1,21 @@
 <template>
-  <div class="asset-card" :class="{ 'selected': isSelected }">
+  <div class="asset-card" @click="handleClick">
     <div class="asset-image-container">
-      <img :src="getImageUrl(asset.imageName)" :alt="asset.name" class="asset-image" />
+      <img :src="getImageURL(asset.imageName)" :alt="asset.name" class="asset-image" />
     </div>
     <div class="asset-info">
       <h3 class="asset-name">{{ asset.name }}</h3>
       <div class="asset-meta">
+        <p class="asset-id">ID: {{ asset.id }}</p>
         <p class="asset-author">创作者ID: {{ asset.authorId }}</p>
         <p class="asset-owner">拥有者ID: {{ asset.ownerId }}</p>
         <p class="asset-created-at">铸造时间: {{ formatDate(asset.timeStamp) }}</p>
+      </div>
+      <!-- 状态标签 -->
+      <div class="asset-status">
+        <a-tag :color="getStatusColor(status)" class="status-tag">
+          {{ getStatusText(status) }}
+        </a-tag>
       </div>
       <div v-if="asset.description" class="asset-description">
         <p>{{ asset.description }}</p>
@@ -18,7 +25,8 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue';
+import { defineProps, defineEmits } from 'vue';
+import { getImageURL } from '../api/index';
 
 interface Asset {
   id: string;
@@ -30,14 +38,20 @@ interface Asset {
   timeStamp: string;
 }
 
-defineProps<{
+type AssetStatus = 'not_trading' | 'listing' | 'auction';
+
+const props = defineProps<{
   asset: Asset;
-  isSelected?: boolean;
+  status: AssetStatus;
 }>();
 
-// 获取图片完整URL
-const getImageUrl = (imageName: string) => {
-  return `http://localhost:8888/public/images/${imageName}`;
+const emit = defineEmits<{
+  click: [asset: Asset];
+}>();
+
+// 处理点击事件
+const handleClick = () => {
+  emit('click', props.asset);
 };
 
 // 格式化日期
@@ -51,12 +65,32 @@ const formatDate = (dateString: string) => {
     minute: '2-digit'
   });
 };
+
+// 获取状态颜色
+const getStatusColor = (status: AssetStatus) => {
+  const colorMap = {
+    'not_trading': 'green',
+    'listing': 'blue',
+    'auction': 'orange'
+  };
+  return colorMap[status];
+};
+
+// 获取状态文本
+const getStatusText = (status: AssetStatus) => {
+  const textMap = {
+    'not_trading': '不在交易中',
+    'listing': '普通交易中',
+    'auction': '拍卖中'
+  };
+  return textMap[status];
+};
 </script>
 
 <style scoped>
 .asset-card {
   width: 280px;
-  height: 380px;
+  height: 420px;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -70,18 +104,13 @@ const formatDate = (dateString: string) => {
   align-items: center;
   justify-content: space-between;
   border: 2px solid transparent;
+  cursor: pointer;
 }
 
 .asset-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   border: 2px solid #2962ff;
-}
-
-.asset-card.selected {
-  border: 2px solid #2962ff;
-  box-shadow: 0 8px 30px rgba(41, 98, 255, 0.3);
-  transform: translateY(-5px);
 }
 
 .asset-image-container {
@@ -127,6 +156,25 @@ const formatDate = (dateString: string) => {
   font-size: 12px;
 }
 
+.asset-status {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.status-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.asset-id {
+  font-size: 10px;
+  color: #3aabe4;
+  line-height: 1.4;
+  margin: 2px 0;
+}
+
 .asset-author,
 .asset-owner,
 .asset-created-at {
@@ -140,7 +188,7 @@ const formatDate = (dateString: string) => {
   margin: 8px 0;
   font-size: 12px;
   color: #666;
-  max-height: 40px;
+  max-height: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

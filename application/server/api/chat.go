@@ -30,9 +30,9 @@ func NewChatHandler() (*ChatHandler, error) {
 // 如果对方在线，则直接推送
 // 如果对方不在线，则将消息先存入数据库
 func (h *ChatHandler) SendMessage(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		utils.ServerError(c, "用户信息获取失败")
+	userID, err := strconv.Atoi(c.Query("userId"))
+	if err != nil {
+		utils.BadRequest(c, "用户ID不能为空")
 		return
 	}
 	// 升级HTTP连接到WebSocket
@@ -45,11 +45,11 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 
 	// 将新连接添加到连接管理器
 	connManager := model.GetConnManager()
-	connManager.AddConn(userID.(int), conn)
+	connManager.AddConn(userID, conn)
 
 	// 监听连接断开事件，并从管理器中移除
 	defer func() {
-		connManager.RemoveConn(userID.(int))
+		connManager.RemoveConn(userID)
 	}()
 
 	// 设置读取超时和关闭处理
@@ -94,7 +94,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 
 		// 检查消息是否是自己发出的
-		if msg.SenderID != userID.(int) {
+		if msg.SenderID != userID {
 			conn.WriteJSON(gin.H{"error": "消息发送者ID不正确"})
 			continue
 		}
@@ -112,7 +112,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 		}
 
 		// 写入数据库
-		error := h.chatService.SendMessage(userID.(int), msg.RecipientID, msg.Content)
+		error := h.chatService.SendMessage(userID, msg.RecipientID, msg.Content)
 		if error != nil {
 			fmt.Printf("保存消息到数据库失败: %v\n", error)
 			// 发送错误消息给客户端
@@ -164,16 +164,35 @@ func (h *ChatHandler) ReadMessages(c *gin.Context) {
 		utils.ServerError(c, "用户信息获取失败")
 		return
 	}
-	var messageIDs []int
-	err := c.ShouldBindJSON(&messageIDs)
+	otherID, err := strconv.Atoi(c.Query("otherID"))
 	if err != nil {
-		utils.BadRequest(c, "消息ID不能为空")
+		utils.BadRequest(c, "其它用户ID不能为空")
 		return
 	}
-	err = h.chatService.ReadMessages(messageIDs, userID.(int))
+	err = h.chatService.ReadMessages(userID.(int), otherID)
 	if err != nil {
 		utils.ServerError(c, "标记消息为已读失败")
 		return
 	}
 	utils.Success(c, "标记消息为已读成功")
+}
+
+// 获取未读消息数量
+func (h *ChatHandler) GetUnreadMessageCount(c *gin.Context) {
+	myID, exists := c.Get("userID")
+	if !exists {
+		utils.ServerError(c, "用户信息获取失败")
+		return
+	}
+	otherID, err := strconv.Atoi(c.Query("otherID"))
+	if err != nil {
+		utils.BadRequest(c, "其它用户ID不能为空")
+		return
+	}
+	count, err := h.chatService.GetUnreadMessageCount(myID.(int), otherID)
+	if err != nil {
+		utils.ServerError(c, "获取未读消息数量失败")
+		return
+	}
+	utils.Success(c, count)
 }

@@ -1,16 +1,6 @@
 <template>
   <div class="wallet-container">
-    <header class="user-info-section">
-      <div class="user-profile">
-        <button class="back-button" @click="goToDashboard">
-          <i class="back-icon">←</i>
-        </button>
-        <div class="user-details">
-          <h1 class="username">{{ user.username }}</h1>
-          <p class="greeting">管理你的的加密货币和数字收藏品。</p>
-        </div>
-      </div>
-    </header>
+    <WalletNav />
 
     <!-- 主内容区 -->
     <main class="main-content">
@@ -32,6 +22,7 @@
               type="number"
               @blur="validateField('recipientId')"
               @input="clearError('recipientId')"
+              placeholder="请输入接收方ID"
             />
             <p v-if="errors.recipientId" class="error-message">{{ errors.recipientId }}</p>
           </div>
@@ -44,6 +35,7 @@
               type="number"
               @blur="validateField('amount')"
               @input="clearError('amount')"
+              placeholder="请输入转账金额（必须大于0）"
             />
             <p v-if="errors.amount" class="error-message">{{ errors.amount }}</p>
           </div>
@@ -66,37 +58,14 @@
           </a-tab-pane>
         </a-tabs>
       </div>
-
-      <!-- 我的NFT资产（保持不变） -->
-      <div class="my-nfts">
-        <h3>我的NFT资产</h3>
-        <div class="nft-list" v-if="nfts.length > 0">
-          <AssetCard 
-            v-for="nft in nfts" 
-            :key="nft.id" 
-            :asset="nft" 
-          />
-        </div>
-        <p v-else class="no-nft">暂无NFT资产</p>
-      </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
-import AssetCard from '../components/AssetCard.vue';
-import { walletApi, assetApi } from '../api';
-
-// 初始化路由
-const router = useRouter();
-
-// 添加返回方法
-const goToDashboard = () => {
-  router.push('/dashboard');
-};
+import { walletApi } from '../api';
 
 // 类型定义（保持不变）
 interface UserInfo {
@@ -124,16 +93,6 @@ interface TransferRecord {
   timeStamp: string;
 }
 
-interface Asset {
-  id: string;
-  name: string;
-  description: string;
-  imageName: string;
-  authorId: number;
-  ownerId: number;
-  timeStamp: string;
-}
-
 // 状态定义
 const user = ref<UserInfo>({
   username: '游客',
@@ -152,7 +111,6 @@ const errors = ref({
 });
 const sentTransfers = ref<TransferRecord[]>([]);
 const receivedTransfers = ref<TransferRecord[]>([]);
-const nfts = ref<Asset[]>([]);
 
 // 转账记录表格列定义（保持不变）
 const transferColumns = [
@@ -183,6 +141,7 @@ const transferColumns = [
     key: 'timeStamp',
   }
 ];
+
 
 // 加载数据的方法（保持不变）
 const loadUserInfo = () => {
@@ -248,17 +207,6 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const loadMyNFTs = async () => {
-  try {
-    const response = await assetApi.getByOwnerId(user.value.id.toString());
-    if (response.data.code === 200) {
-      nfts.value = response.data.data || [];
-    }
-  } catch (error) {
-    message.error('获取NFT资产失败');
-    console.error(error);
-  }
-};
 
 // 自定义验证逻辑
 const validateField = (field: keyof TransferForm) => {
@@ -337,38 +285,10 @@ onMounted(() => {
   loadUserInfo();
   loadBalance();
   loadTransferRecords();
-  loadMyNFTs();
 });
 </script>
 
 <style scoped>
-
-.back-button {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: none;
-  border-radius: 19px;
-  padding: 6px 12px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 10px;
-  color: #4a90e2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  background-color: white;
-  transform: translateX(-2px);
-}
-
-.back-icon {
-  margin-right: 6px;
-  font-style: normal;
-}
 
 .custom-transfer-form {
   padding: 10px 0;
@@ -397,45 +317,6 @@ onMounted(() => {
   background-color: #f5f7fa;
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
   color: #333;
-}
-
-/* 用户信息头部样式 */
-.user-info-section {
-  width: 100%;
-  padding: 40px 24px;
-  background: linear-gradient(135deg, #4a90e2 0%, #76b1f3 100%);
-  color: #fff;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.9);
-  object-fit: cover;
-  margin-right: 20px;
-}
-
-.username {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  color: #fff;
-  
-}
-
-.greeting {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin: 5px 0 0;
 }
 
 /* 主内容区样式 */
@@ -492,31 +373,6 @@ onMounted(() => {
 .transfer-records h3 {
   margin: 0 0 20px 0;
   color: #333;
-}
-
-/* NFT列表样式 */
-.my-nfts {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-
-.my-nfts h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-}
-
-.nft-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.no-nft {
-  text-align: center;
-  padding: 40px 0;
-  color: #888;
 }
 
 /* 响应式调整 */

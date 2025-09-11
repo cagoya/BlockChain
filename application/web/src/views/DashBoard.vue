@@ -45,7 +45,7 @@
           <div class="card-description">将你的创意转化为独一无二的数字艺术品。</div>
         </router-link>
 
-        <router-link to="/market" class="card card-trading">
+        <router-link to="/market/sell" class="card card-trading">
           <div class="card-icon">
             <TransactionOutlined />
           </div>
@@ -53,7 +53,7 @@
           <div class="card-description">探索、买卖和收藏来自全球的数字资产。</div>
         </router-link>
 
-        <router-link to="/wallet" class="card card-wallet">
+        <router-link to="/wallet/balance" class="card card-wallet">
           <div class="card-icon">
             <WalletOutlined />
           </div>
@@ -108,12 +108,13 @@ interface UserInfo {
   username: string;
   avatarURL: string;
 }
+import { getImageURL } from '../api/index';
 
 const router = useRouter();
 
 const user = ref<UserInfo>({
-  username: '游客',
-  avatarURL: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'
+  username: '',
+  avatarURL: ''
 });
 
 const popoverVisible = ref<boolean>(false);
@@ -139,7 +140,7 @@ const loadUserInfo = () => {
     try {
       const parsedUserInfo = JSON.parse(userInfoString);
       user.value.username = parsedUserInfo.username || user.value.username;
-      user.value.avatarURL = parsedUserInfo.avatarURL || user.value.avatarURL;
+      user.value.avatarURL = getImageURL(parsedUserInfo.avatarURL) || user.value.avatarURL;
       userInfo.value.id = parsedUserInfo.id || userInfo.value.id;
       userInfo.value.username = parsedUserInfo.username || userInfo.value.username;
       userInfo.value.email = parsedUserInfo.email || userInfo.value.email;
@@ -191,7 +192,7 @@ const handleLogout = async () => {
 
 // 头像上传成功处理
 const handleAvatarUploadSuccess = (avatarUrl: string) => {
-  user.value.avatarURL = avatarUrl;
+  user.value.avatarURL = getImageURL(avatarUrl);
   
   // 更新 localStorage
   const userInfoString = localStorage.getItem('userInfo');

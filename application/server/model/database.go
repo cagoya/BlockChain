@@ -22,7 +22,7 @@ func InitDB() error {
 	}
 
 	// 自动迁移表结构
-	err = DB.AutoMigrate(&User{}, &Token{}, &Message{}, &ChatSession{})
+	err = DB.AutoMigrate(&User{}, &Token{}, &Message{}, &ChatSession{}, &MarketListing{}, &MarketOffer{}, &Lot{}, &Bid{}, &AuctionResult{})
 	if err != nil {
 		return fmt.Errorf("数据库迁移失败：%v", err)
 	}

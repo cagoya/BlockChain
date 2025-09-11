@@ -67,7 +67,31 @@ func (s *ChatService) GetChatSession(userID int) ([]model.ChatSession, error) {
 	if err != nil {
 		return nil, fmt.Errorf("获取聊天会话失败：%v", err)
 	}
-	return sessions, nil
+	// 使用一个map来进行去重，key为对方ID
+	recentSessions := make(map[int]model.ChatSession)
+	for _, session := range sessions {
+		// 确定对话的另一方是谁
+		var otherID int
+		if session.SenderID == userID {
+			otherID = session.RecipientID
+		} else {
+			otherID = session.SenderID
+		}
+
+		// 如果map中还没有这个对话的记录，就将当前记录存入
+		// 因为我们是按时间倒序遍历，所以第一条遇到的记录就是最新的
+		if _, ok := recentSessions[otherID]; !ok {
+			recentSessions[otherID] = session
+		}
+	}
+
+	// 5. 将map中的值转换成切片并返回
+	var result []model.ChatSession
+	for _, session := range recentSessions {
+		result = append(result, session)
+	}
+
+	return result, nil
 }
 
 func (s *ChatService) GetMessages(userID1 int, userID2 int) ([]model.Message, error) {
@@ -79,10 +103,19 @@ func (s *ChatService) GetMessages(userID1 int, userID2 int) ([]model.Message, er
 	return messages, nil
 }
 
-func (s *ChatService) ReadMessages(messageIDs []int, userID int) error {
-	err := s.db.Model(&model.Message{}).Where("id IN (?) AND recipient_id = ?", messageIDs, userID).Update("has_read", true).Error
+func (s *ChatService) ReadMessages(myID int, otherID int) error {
+	err := s.db.Model(&model.Message{}).Where("recipient_id = ? AND sender_id = ?", myID, otherID).Update("has_read", true).Error
 	if err != nil {
 		return fmt.Errorf("标记消息为已读失败：%v", err)
 	}
 	return nil
+}
+
+func (s *ChatService) GetUnreadMessageCount(myID int, otherID int) (int, error) {
+	var count int64
+	err := s.db.Model(&model.Message{}).Where("recipient_id = ? AND sender_id = ? AND has_read = ?", myID, otherID, false).Count(&count).Error
+	if err != nil {
+		return 0, fmt.Errorf("获取未读消息数量失败：%v", err)
+	}
+	return int(count), nil
 }

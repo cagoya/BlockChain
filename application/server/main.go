@@ -45,6 +45,9 @@ func main() {
 	walletHandler := api.NewWalletHandler()
 	assetHandler := api.NewAssetHandler()
 	chatHandler, err := api.NewChatHandler()
+	marketHandler := api.NewMarketHandler()
+	auctionHandler := api.NewAuctionHandler()
+
 	if err != nil {
 		log.Fatalf("创建聊天处理程序失败：%v", err)
 	}
@@ -79,6 +82,8 @@ func main() {
 		authAccount.PUT("/avatar", accountHandler.UpdateAvatar)
 		// 更新组织接口
 		authAccount.PUT("/org", accountHandler.UpdateOrg)
+		// 获取用户名
+		authAccount.GET("/userName", accountHandler.GetUserNameById)
 	}
 
 	// 钱包相关接口
@@ -104,31 +109,45 @@ func main() {
 		asset.GET("/getAssetByAuthorID", assetHandler.GetAssetByAuthorID)
 		asset.GET("/getAssetByOwnerID", assetHandler.GetAssetByOwnerID)
 		asset.POST("/transfer", assetHandler.TransferAsset)
+		asset.GET("/getStatus", assetHandler.GetAssetStatus)
 	}
 
-	// 聊天相关接口
-	chat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
+	// 聊天相关接口（无需认证），主要是因为websocket
+	chat := apiGroup.Group("/chat")
 	{
 		chat.GET("/ws", chatHandler.SendMessage)
-		chat.GET("/getChatSession", chatHandler.GetChatSession)
-		chat.GET("/getMessages", chatHandler.GetMessages)
-		chat.POST("/readMessages", chatHandler.ReadMessages)
 	}
-	marketHandler := api.NewMarketHandler() // 新增market
-	// 市场（公开）
-	marketPublic := apiGroup.Group("/market")
+
+	// 需要认证的聊天接口
+	authChat := apiGroup.Group("/chat").Use(jwtMiddleware.Auth())
 	{
-		marketPublic.GET("/listings", marketHandler.ListListings)
+		authChat.GET("/getChatSession", chatHandler.GetChatSession)
+		authChat.GET("/getMessages", chatHandler.GetMessages)
+		authChat.POST("/readMessages", chatHandler.ReadMessages)
+		authChat.GET("/getUnreadMessageCount", chatHandler.GetUnreadMessageCount)
 	}
 
 	// 市场（需要 JWT）
 	market := apiGroup.Group("/market", jwtMiddleware.Auth())
 	{
+		market.GET("/listings", marketHandler.ListListings)
 		market.POST("/listing", marketHandler.CreateListing)
 		market.POST("/offer", marketHandler.CreateOffer)
 		market.POST("/offer/:id/accept", marketHandler.AcceptOffer)
 		market.POST("/offer/:id/cancel", marketHandler.CancelOffer)
 		market.GET("/offers/mine", marketHandler.ListMyOffers)
+	}
+
+	// 拍卖相关接口
+	auction := apiGroup.Group("/auction", jwtMiddleware.Auth())
+	{
+		auction.POST("/create", auctionHandler.CreateLot)
+		auction.GET("/list", auctionHandler.GetAllLots)
+		auction.GET("/seller", auctionHandler.GetLotBySellerID)
+		auction.POST("/bid", auctionHandler.SubmitBid)
+		auction.GET("/bid", auctionHandler.GetBidPrice)
+		auction.GET("/result", auctionHandler.GetAuctionResult)
+		auction.POST("/finish", auctionHandler.FinishAuction)
 	}
 
 	// 打印路由信息

@@ -8,35 +8,37 @@
       </div>
 
       <div class="search-form">
-        <a-form layout="inline">
-          <a-form-item label="查询类型">
+        <div class="search-controls">
+          <div class="control-group">
+            <label class="control-label">查询类型</label>
             <a-select
               v-model:value="searchType"
-              style="width: 150px"
               placeholder="选择查询类型"
+              class="search-select"
             >
               <a-select-option value="author">按作者ID</a-select-option>
               <a-select-option value="owner">按拥有者ID</a-select-option>
             </a-select>
-          </a-form-item>
+          </div>
 
-          <a-form-item label="查询值">
+          <div class="control-group">
+            <label class="control-label">查询值</label>
             <a-input
               v-model:value="searchValue"
               placeholder="请输入查询值"
-              style="width: 200px"
+              class="search-input"
             />
-          </a-form-item>
+          </div>
 
-          <a-form-item>
-            <a-button type="primary" html-type="submit" :loading="searching" @click="handleSearch">
+          <div class="control-group">
+            <a-button type="primary" html-type="submit" :loading="searching" @click="handleSearch" class="search-btn">
               搜索
             </a-button>
-            <a-button @click="handleReset">
+            <a-button @click="handleReset" class="reset-btn">
               重置
             </a-button>
-          </a-form-item>
-        </a-form>
+          </div>
+        </div>
       </div>
 
       <div class="search-results">
@@ -202,40 +204,44 @@ const handleReset = () => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
-.search-form :deep(.ant-form) {
+.search-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: nowrap;
+  justify-content: center;
 }
 
-.search-form :deep(.ant-form-item) {
-  margin-bottom: 0;
-  margin-right: 0;
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.search-form :deep(.ant-form-item-label > label) {
+.control-label {
   font-size: 16px;
   font-weight: 600;
   color: #3f51b5;
-  margin-bottom: 0;
   white-space: nowrap;
+  margin: 0;
 }
 
-.search-form :deep(.ant-select) {
+.search-select {
+  width: 150px;
   border-radius: 8px;
   border: 1px solid #c5cae9;
   transition: all 0.3s ease;
 }
 
-.search-form :deep(.ant-select:hover),
-.search-form :deep(.ant-select-focused) {
+.search-select:hover,
+.search-select:focus {
   border-color: #2962ff;
   box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2);
 }
 
-.search-form :deep(.ant-input) {
+.search-input {
+  width: 200px;
   border-radius: 8px;
   border: 1px solid #c5cae9;
   padding: 10px 15px;
@@ -243,13 +249,13 @@ const handleReset = () => {
   transition: all 0.3s ease;
 }
 
-.search-form :deep(.ant-input:hover),
-.search-form :deep(.ant-input:focus) {
+.search-input:hover,
+.search-input:focus {
   border-color: #2962ff;
   box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2);
 }
 
-.search-form :deep(.ant-btn-primary) {
+.search-btn {
   background-color: #2962ff;
   border-color: #2962ff;
   border-radius: 8px;
@@ -258,13 +264,13 @@ const handleReset = () => {
   margin-right: 8px;
 }
 
-.search-form :deep(.ant-btn-primary:hover) {
+.search-btn:hover {
   background-color: #004acb;
   border-color: #004acb;
   transform: translateY(-1px);
 }
 
-.search-form :deep(.ant-btn:not(.ant-btn-primary)) {
+.reset-btn {
   background-color: #ef5350;
   border-color: #ef5350;
   color: #fff;
@@ -273,7 +279,7 @@ const handleReset = () => {
   transition: all 0.3s ease;
 }
 
-.search-form :deep(.ant-btn:not(.ant-btn-primary):hover) {
+.reset-btn:hover {
   background-color: #d32f2f;
   border-color: #d32f2f;
   transform: translateY(-1px);
@@ -381,24 +387,30 @@ const handleReset = () => {
     padding: 20px;
   }
   
-  .search-form :deep(.ant-form) {
-    flex-wrap: nowrap;
-    gap: 8px;
+  .search-controls {
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
   }
   
-  .search-form :deep(.ant-form-item-label > label) {
+  .control-group {
+    gap: 6px;
+  }
+  
+  .control-label {
     font-size: 14px;
   }
   
-  .search-form :deep(.ant-select) {
-    width: 120px !important;
+  .search-select {
+    width: 120px;
   }
   
-  .search-form :deep(.ant-input) {
-    width: 150px !important;
+  .search-input {
+    width: 150px;
   }
   
-  .search-form :deep(.ant-btn) {
+  .search-btn,
+  .reset-btn {
     padding: 4px 8px;
     font-size: 12px;
   }

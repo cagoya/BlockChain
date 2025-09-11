@@ -1,8 +1,18 @@
 import axios from 'axios';
 
+// 本地开发可以选择 localhost:8888/api
+// 如果需要多机调试，将 localhost 改为你的 ip 地址
+// 这样在局域网内可以访问
+export const backendURL = 'http://10.162.199.212:8888/api';
+
+// 获取图片的完整 URL
+export const getImageURL = (imageName: string) => {
+  return `${backendURL.replace('/api', '')}/public/images/${imageName}`;
+};
+
 // 创建axios实例
 const instance = axios.create({
-  baseURL: '/api', // 基础API路径
+  baseURL: backendURL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json'
@@ -118,7 +128,24 @@ const accountApi = {
    */
   getProfile: () => {
     return instance.get('/account/profile');
+  },
+
+  /**
+   * 获取用户名
+   * @param userId 用户ID
+   */
+  getUserNameById: (userId: number) => {
+    return instance.get(`/account/userName?id=${userId}`);
+  },
+
+  /**
+   * 获取头像
+   * @param userId 用户ID
+   */
+  getAvatar: (userId: number) => {
+    return instance.get(`/account/avatar?id=${userId}`);
   }
+
 };
 
 // 资产相关API
@@ -136,6 +163,14 @@ const assetApi = {
   },
 
   /**
+   * 根据Id获取资产
+   * @param id 资产ID
+   */
+  getById: (id: string) => {
+    return instance.get(`/asset/getAssetByID?id=${id}`);
+  },
+
+  /**
    * 根据作者ID获取资产
    * @param authorId 作者ID
    */
@@ -149,7 +184,16 @@ const assetApi = {
    */
   getByOwnerId: (ownerId: string) => {
     return instance.get(`/asset/getAssetByOwnerID?ownerId=${ownerId}`);
+  },
+
+  /**
+   * 获取资产状态
+   * @param id 资产ID
+   */
+  getStatus: (id: string) => {
+    return instance.get(`/asset/getStatus?id=${id}`);
   }
+
 };
 
 // 钱包相关API
@@ -213,16 +257,124 @@ const walletApi = {
   return instance.get('/account/profile').then(user => {
     // 假设用户信息中组织字段为org
     return user.data.org;
-  });
-}
+    });
+  },
+
+ /**
+   * 获取当前用户预扣款
+   */
+  getWithholdingsByAccount: () => {
+    return instance.get('/wallet/getWithHoldingByAccountID');
+  },
+  getWithholdingsByListing: (listingId: string) => {
+    return instance.get(`/wallet/getWithHoldingByListingID?listingID=${listingId}`);
+  }
+};
+
+// 聊天相关API
+const chatApi = {
+  /**
+   * 获取聊天会话列表
+   */
+  getChatSessions: () => {
+    return instance.get('/chat/getChatSession');
+  },
+
+  /**
+   * 获取与指定用户的消息记录
+   * @param otherId 对方用户ID
+   */
+  getMessages: (otherId: number) => {
+    return instance.get(`/chat/getMessages?otherID=${otherId}`);
+  },
+
+  /**
+   * 标记消息为已读
+   * @param otherId 对方用户ID
+   */
+  readMessages: (otherId: number) => {
+    return instance.post(`/chat/readMessages?otherID=${otherId}`);
+  },
+
+  /**
+   * 获取未读消息数量
+   * @param otherId 对方用户ID
+   */
+  getUnreadMessageCount: (otherId: number) => {
+    return instance.get(`/chat/getUnreadMessageCount?otherID=${otherId}`);
+  }
+};
+
+// 市场相关API
+const marketApi = {
+  /**
+   * 创建挂牌
+   * @param listingData 挂牌数据 {assetId, title, price, deadline}
+   */
+  createListing: (listingData: any) => {
+    return instance.post('/market/listing', listingData);
+  }
+
+  // 待补充
+};
+
+// 拍卖相关API
+const auctionApi = {
+  /**
+   * 创建拍卖品
+   * @param auctionData 拍卖品数据 {assetId, title, reservePrice, startTime, deadline}
+   */
+  create: (auctionData: any) => {
+    return instance.post('/auction/create', auctionData);
+  },
+  
+  /**
+   * 列出所有拍卖品
+   */
+  list: () => {
+    return instance.get('/auction/list');
+  },
+  
+  /**
+   * 按照出售者获取拍卖品
+   */
+  getBySeller: () => {
+    return instance.get('/auction/seller');
+  },
+
+  /**
+   * 出价
+   * @param bidData 出价数据 {lotId, bidPrice}
+   */
+  bid: (bidData: any) => {
+    return instance.post('/auction/bid', bidData);
+  },
+
+  /**
+   * 获取当前用户的出价
+   * @param lotId 拍卖品ID
+   */
+  getBid: (lotId: number) => {
+    return instance.get(`/auction/bid?lotID=${lotId}`);
+  },
+
+  /**
+   * 获取拍卖结果
+   * @param lotId 拍卖品ID
+   */
+  getResult: (lotId: number) => {
+    return instance.get(`/auction/result?lotID=${lotId}`);
+  }
 };
 
 // 导出所有API模块
-export { accountApi, assetApi, walletApi };
+export { accountApi, assetApi, walletApi, chatApi, auctionApi, marketApi };
 
 // 默认导出包含所有API的对象
 export default {
   account: accountApi,
   asset: assetApi,
-  wallet: walletApi
+  wallet: walletApi,
+  chat: chatApi,
+  auction: auctionApi
 };

@@ -17,7 +17,7 @@ type AssetHandler struct {
 
 func NewAssetHandler() *AssetHandler {
 	return &AssetHandler{
-		assetService: service.NewAssetService(),
+		assetService: service.NewAssetService(model.GetDB()),
 	}
 }
 
@@ -143,4 +143,14 @@ func (h *AssetHandler) TransferAsset(c *gin.Context) {
 		return
 	}
 	utils.Success(c, nil)
+}
+
+func (h *AssetHandler) GetAssetStatus(c *gin.Context) {
+	id := c.Query("id")
+	status, err := h.assetService.GetAssetStatus(id)
+	if err != nil {
+		utils.ServerError(c, err.Error())
+		return
+	}
+	utils.Success(c, status)
 }

@@ -24,7 +24,7 @@ func (s *MarketService) CreateListing(userID int, assetId, title string, price i
 	const org2 = 2
 
 	// 1) 链上校验：只有 NFT 当前 Owner 才能挂牌
-	as := NewAssetService()
+	as := NewAssetService(model.GetDB())
 	asset, err := as.GetAssetByID(assetId, org2)
 	if err != nil {
 		return nil, fmt.Errorf("查询NFT失败：%v", err)
@@ -178,7 +178,7 @@ func (s *MarketService) AcceptOffer(userID int, offerId uint) error {
 	}
 
 	// 2.5) 清算成功后 → 转移 NFT（卖家 → 赢家）
-	as := NewAssetService()
+	as := NewAssetService(model.GetDB())
 	if err := as.TransferAsset(listing.AssetID, offer.BidderID, listing.SellerID, org2); err != nil {
 		return fmt.Errorf("NFT转移失败：%v", err)
 	}
