@@ -14,7 +14,6 @@ type Lot struct {
 	SellerOrg    int       `json:"sellerOrg" gorm:"not null;default:2"`             // 卖家组织
 	StartTime    time.Time `json:"startTime" gorm:"not null;"`                      // 开始时间
 	Deadline     time.Time `json:"deadline" gorm:"not null;"`                       // 结束时间
-	Valid        bool      `json:"valid" gorm:"default:true"`                       // 是否有效
 	CreateTime   time.Time `json:"createTime" gorm:"autoCreateTime"`                // 创建时间
 	UpdateTime   time.Time `json:"updateTime" gorm:"autoUpdateTime"`                // 更新时间
 }
@@ -56,6 +55,6 @@ type UpdateLotRequest struct {
 }
 
 type BidRequest struct {
-	LotID    int `json:"lotId"`    // 拍品ID
+	ID       int `json:"id"`       // 拍品ID
 	BidPrice int `json:"bidPrice"` // 出价
 }

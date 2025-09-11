@@ -4,6 +4,7 @@ import (
 	"application/model"
 	"application/service"
 	"application/utils"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -38,12 +39,6 @@ func (h *AuctionHandler) CreateLot(c *gin.Context) {
 		utils.ServerError(c, err.Error())
 		return
 	}
-	// 用于测试的定时器任务
-	//time.AfterFunc(time.Until(lotRequest.Deadline), func() {
-	//	fmt.Printf("定时器任务执行，当前时间为%s\n", time.Now().Format("2006-01-02 15:04:05"))
-	//})
-	//创建一个定时器任务，当拍卖到达结束时间时自动选择最高价
-	// 查询自动创建的 LotID
 	lot, err := h.service.GetLotByAssetID(lotRequest.AssetID)
 	if err != nil {
 		utils.ServerError(c, err.Error())
@@ -51,41 +46,9 @@ func (h *AuctionHandler) CreateLot(c *gin.Context) {
 	}
 	time.AfterFunc(time.Until(lotRequest.Deadline), func() {
 		h.service.FinishAuction(lot.ID)
+		fmt.Printf("定时器任务执行，当前时间为%s\n", time.Now().Format("2006-01-02 15:04:05"))
 	})
 	utils.SuccessWithMessage(c, "创建拍卖品成功", nil)
-}
-
-// 更新拍卖品
-func (h *AuctionHandler) UpdateLotByID(c *gin.Context) {
-	lotRequest := &model.UpdateLotRequest{}
-	c.ShouldBindJSON(lotRequest)
-	sellerID, exists := c.Get("userID")
-	if !exists {
-		utils.ServerError(c, "用户信息获取失败")
-		return
-	}
-	err := h.service.UpdateLotByID(sellerID.(int), lotRequest.AssetID, lotRequest.Title, lotRequest.ReservePrice)
-	if err != nil {
-		utils.ServerError(c, err.Error())
-		return
-	}
-	utils.SuccessWithMessage(c, "更新拍卖品成功", nil)
-}
-
-// 取消拍卖品
-func (h *AuctionHandler) CancelLot(c *gin.Context) {
-	assetID := c.Query("assetID")
-	sellerID, exists := c.Get("userID")
-	if !exists {
-		utils.ServerError(c, "用户信息获取失败")
-		return
-	}
-	err := h.service.CancelLot(sellerID.(int), assetID)
-	if err != nil {
-		utils.ServerError(c, err.Error())
-		return
-	}
-	utils.SuccessWithMessage(c, "取消拍卖品成功", nil)
 }
 
 // 查询所有拍卖品
@@ -127,7 +90,7 @@ func (h *AuctionHandler) SubmitBid(c *gin.Context) {
 		utils.ServerError(c, "用户组织信息获取失败")
 		return
 	}
-	err := h.service.SubmitBid(bidRequest.LotID, bidderID.(int), bidRequest.BidPrice, bidderOrg.(int))
+	err := h.service.SubmitBid(bidRequest.ID, bidderID.(int), bidRequest.BidPrice, bidderOrg.(int))
 	if err != nil {
 		utils.ServerError(c, err.Error())
 		return
@@ -153,21 +116,6 @@ func (h *AuctionHandler) GetBidPrice(c *gin.Context) {
 		return
 	}
 	utils.SuccessWithMessage(c, "查询出价成功", bidPrice)
-}
-
-// 查询最高出价
-func (h *AuctionHandler) GetMaxBidPrice(c *gin.Context) {
-	lotID, err := strconv.Atoi(c.Query("lotID"))
-	if err != nil {
-		utils.ServerError(c, "拍卖品ID不能为空")
-		return
-	}
-	bidPrice, err := h.service.GetMaxBidPrice(lotID)
-	if err != nil {
-		utils.ServerError(c, err.Error())
-		return
-	}
-	utils.SuccessWithMessage(c, "查询最高出价成功", bidPrice)
 }
 
 // 结束拍卖不需要被前端调用，因为我们会在后端创建一个定时器任务

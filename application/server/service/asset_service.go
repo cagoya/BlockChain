@@ -125,9 +125,9 @@ func (s *AssetService) GetAssetStatus(id string) (int, error) {
 	if err == nil {
 		return 1, nil
 	}
-	// 查询是否有对应的 lot 是有效状态
+	// 查询是否有对应的 lot 是在拍卖中
 	lot := model.Lot{}
-	err = s.db.Where("asset_id = ? and valid = true", id).First(&lot).Error
+	err = s.db.Where("asset_id = ? and deadline > ?", id, time.Now()).First(&lot).Error
 	if err == nil {
 		return 2, nil
 	}

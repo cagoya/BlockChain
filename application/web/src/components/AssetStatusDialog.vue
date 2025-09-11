@@ -54,6 +54,7 @@
               <a-date-picker 
                 v-model:value="listingForm.deadline" 
                 show-time 
+                format="YYYY-MM-DD HH:mm"
                 placeholder="选择截止时间"
                 style="width: 100%"
               />
@@ -81,6 +82,7 @@
               <a-date-picker 
                 v-model:value="auctionForm.startTime" 
                 show-time 
+                format="YYYY-MM-DD HH:mm"
                 placeholder="选择开始时间"
                 style="width: 100%"
               />
@@ -89,6 +91,7 @@
               <a-date-picker 
                 v-model:value="auctionForm.deadline" 
                 show-time 
+                format="YYYY-MM-DD HH:mm"
                 placeholder="选择结束时间"
                 style="width: 100%"
               />
@@ -217,7 +220,7 @@ const handleSubmit = async () => {
       const listingData = {
         assetId: props.asset?.id,
         title: listingForm.value.title,
-        price: listingForm.value.price, // 直接使用整数
+        price: listingForm.value.price,
         deadline: listingForm.value.deadline ? dayjs(listingForm.value.deadline).format() : null
       };
 
@@ -229,7 +232,7 @@ const handleSubmit = async () => {
       const auctionData = {
         assetId: props.asset?.id,
         title: auctionForm.value.title,
-        reservePrice: auctionForm.value.reservePrice, // 直接使用整数
+        reservePrice: auctionForm.value.reservePrice,
         startTime: auctionForm.value.startTime ? dayjs(auctionForm.value.startTime).format() : null,
         deadline: auctionForm.value.deadline ? dayjs(auctionForm.value.deadline).format() : null
       };

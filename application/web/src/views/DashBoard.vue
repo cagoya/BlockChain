@@ -45,7 +45,7 @@
           <div class="card-description">将你的创意转化为独一无二的数字艺术品。</div>
         </router-link>
 
-        <router-link to="/market" class="card card-trading">
+        <router-link to="/market/sell" class="card card-trading">
           <div class="card-icon">
             <TransactionOutlined />
           </div>

@@ -6,17 +6,35 @@
       <main class="main-content">
         <!-- 我的NFT资产 -->
         <div class="my-nfts">
-          <h3>我的NFT资产</h3>
-          <div class="nft-list" v-if="nfts.length > 0">
+          <div class="header-section">
+            <h3>我的NFT资产</h3>
+            <!-- 状态筛选 -->
+            <div class="filter-section">
+              <a-select
+                v-model:value="statusFilter"
+                placeholder="筛选状态"
+                style="width: 150px"
+                allow-clear
+              >
+                <a-select-option value="">全部状态</a-select-option>
+                <a-select-option value="not_trading">不在交易中</a-select-option>
+                <a-select-option value="listing">普通交易中</a-select-option>
+                <a-select-option value="auction">拍卖中</a-select-option>
+              </a-select>
+            </div>
+          </div>
+          <div class="nft-list" v-if="filteredNfts.length > 0">
             <AssetCard 
-              v-for="nft in nfts" 
+              v-for="nft in filteredNfts" 
               :key="nft.id" 
               :asset="nft"
               :status="assetStatusMap[nft.id] || 'not_trading'"
               @click="handleAssetClick"
             />
           </div>
-          <p v-else class="no-nft">暂无NFT资产</p>
+          <p v-else class="no-nft">
+            {{ statusFilter ? '没有符合条件的NFT资产' : '暂无NFT资产' }}
+          </p>
         </div>
       </main>
 
@@ -32,11 +50,11 @@
   </template>
   
   <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import { message } from 'ant-design-vue';
   import AssetCard from '../components/AssetCard.vue';
   import AssetStatusDialog from '../components/AssetStatusDialog.vue';
-  import { assetApi, auctionApi } from '../api';
+  import { assetApi, auctionApi, marketApi } from '../api';
   
   // 类型定义
   interface UserInfo {
@@ -81,6 +99,20 @@
   const selectedAsset = ref<Asset | null>(null);
   const assetStatus = ref<AssetStatus>('not_trading');
   const submitting = ref(false);
+
+  // 筛选状态
+  const statusFilter = ref<string>('');
+
+  // 计算属性：根据筛选条件过滤资产
+  const filteredNfts = computed(() => {
+    if (!statusFilter.value) {
+      return nfts.value;
+    }
+    return nfts.value.filter(nft => {
+      const nftStatus = assetStatusMap.value[nft.id] || 'not_trading';
+      return nftStatus === statusFilter.value;
+    });
+  });
   
   // 加载用户信息
   const loadUserInfo = () => {
@@ -142,21 +174,13 @@
     assetStatus.value = assetStatusMap.value[asset.id] || 'not_trading';
   };
 
-  // Mock 创建普通交易
-  const createListing = async (data: any) => {
-    // Mock 接口调用
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Mock: 创建普通交易', data);
-    return { success: true };
-  };
-
   // 处理对话框提交
   const handleDialogSubmit = async (data: { action: string; formData: any }) => {
     submitting.value = true;
 
     try {
       if (data.action === 'listing') {
-        await createListing(data.formData);
+        await marketApi.createListing(data.formData);
         message.success('普通出售创建成功');
       } else if (data.action === 'auction') {
         await auctionApi.create(data.formData);
@@ -208,6 +232,24 @@
     margin: 0 0 20px 0;
     color: #333;
   }
+
+  .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .header-section h3 {
+    margin: 0;
+    color: #333;
+  }
+
+  .filter-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
   
   .nft-list {
     display: grid;
@@ -225,6 +267,16 @@
   @media (max-width: 768px) {
     .nft-list {
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+
+    .header-section {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .filter-section {
+      width: 100%;
     }
   }
 

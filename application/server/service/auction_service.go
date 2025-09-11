@@ -31,7 +31,7 @@ func (s *AuctionService) CreateLot(AssetID string, Title string, ReservePrice in
 	// 检查拍卖品是否已经存在
 	// 同一件商品同时只能对应一个有效拍品
 	lot := model.Lot{}
-	err := s.db.Where("asset_id = ? and valid = true", AssetID).First(&lot).Error
+	err := s.db.Where("asset_id = ? and deadline > ?", AssetID, time.Now()).First(&lot).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			lot = model.Lot{
@@ -51,47 +51,6 @@ func (s *AuctionService) CreateLot(AssetID string, Title string, ReservePrice in
 	return fmt.Errorf("拍卖品已存在")
 }
 
-func (s *AuctionService) UpdateLotByID(SellerID int, AssetID string, Title string, ReservePrice int) error {
-	lot := model.Lot{}
-	err := s.db.Where("asset_id = ? and valid = true and seller_id = ?", AssetID, SellerID).First(&lot).Error
-	if err != nil {
-		return fmt.Errorf("查询拍品失败：%v", err)
-	}
-	// 检查是否已经开拍
-	if lot.StartTime.Before(time.Now()) {
-		return fmt.Errorf("拍卖品已开拍，不允许再修改")
-	}
-	lot.AssetID = AssetID
-	lot.Title = Title
-	lot.ReservePrice = ReservePrice
-	lot.CurrentPrice = ReservePrice
-	return s.db.Save(lot).Error
-}
-
-func (s *AuctionService) CancelLot(SellerID int, AssetID string) error {
-	lot := model.Lot{}
-	err := s.db.Where("asset_id = ? and valid = true and seller_id = ?", AssetID, SellerID).First(&lot).Error
-	if err != nil {
-		return fmt.Errorf("查询拍品失败：%v", err)
-	}
-	lot.Valid = false
-	err = s.db.Save(lot).Error
-	if err != nil {
-		return fmt.Errorf("取消拍卖品失败：%v", err)
-	}
-	// 记录结果为无人出价
-	auctionResult := model.AuctionResult{
-		LotID:    lot.ID,
-		BidPrice: 0,
-		BidderID: 0,
-	}
-	err = s.db.Create(&auctionResult).Error
-	if err != nil {
-		return fmt.Errorf("记录拍卖结果失败：%v", err)
-	}
-	return nil
-}
-
 func (s *AuctionService) GetLotBySellerID(SellerID int) ([]model.Lot, error) {
 	var lots []model.Lot
 	err := s.db.Where("seller_id = ?", SellerID).Find(&lots).Error
@@ -103,7 +62,7 @@ func (s *AuctionService) GetLotBySellerID(SellerID int) ([]model.Lot, error) {
 
 func (s *AuctionService) GetLotByAssetID(AssetID string) (model.Lot, error) {
 	lot := model.Lot{}
-	err := s.db.Where("asset_id = ? and valid = true", AssetID).First(&lot).Error
+	err := s.db.Where("asset_id = ? and deadline > ?", AssetID, time.Now()).First(&lot).Error
 	if err != nil {
 		return model.Lot{}, fmt.Errorf("查询拍品失败：%v", err)
 	}
@@ -122,7 +81,7 @@ func (s *AuctionService) GetAllLots() ([]model.Lot, error) {
 func (s *AuctionService) SubmitBid(LotID int, BidderID int, BidPrice int, BidderOrg int) error {
 	// 检查出价是否高于当前价
 	lot := model.Lot{}
-	err := s.db.Where("id = ? and valid = true", LotID).First(&lot).Error
+	err := s.db.Where("id = ?", LotID).First(&lot).Error
 	if err != nil {
 		return fmt.Errorf("查询拍品失败：%v", err)
 	}
@@ -176,18 +135,6 @@ func (s *AuctionService) GetBidPrice(LotID int, BidderID int) (int, error) {
 	return bid.BidPrice, nil
 }
 
-func (s *AuctionService) GetMaxBidPrice(LotID int) (int, error) {
-	bid := model.Bid{}
-	err := s.db.Where("lot_id = ?", LotID).Order("bid_price desc").First(&bid).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return 0, fmt.Errorf("出价不存在")
-		}
-		return 0, fmt.Errorf("查询出价失败：%v", err)
-	}
-	return bid.BidPrice, nil
-}
-
 func (s *AuctionService) FinishAuction(LotID int) error {
 	lot := model.Lot{}
 	bid := model.Bid{}
@@ -196,11 +143,6 @@ func (s *AuctionService) FinishAuction(LotID int) error {
 	if err != nil {
 		// 无人出价，交易失败
 		if err == gorm.ErrRecordNotFound {
-			lot.Valid = false
-			err = s.db.Save(lot).Error
-			if err != nil {
-				return fmt.Errorf("无效化拍卖品失败：%v", err)
-			}
 			auctionResult := model.AuctionResult{
 				LotID:    LotID,
 				BidPrice: 0,
@@ -218,11 +160,6 @@ func (s *AuctionService) FinishAuction(LotID int) error {
 	err = s.db.Where("id = ?", LotID).First(&lot).Error
 	if err != nil {
 		return fmt.Errorf("查询拍品失败：%v", err)
-	}
-	lot.Valid = false
-	err = s.db.Save(lot).Error
-	if err != nil {
-		return fmt.Errorf("无效拍卖品失败：%v", err)
 	}
 	orgName, err := model.GetOrg(bid.BidderOrg)
 	if err != nil {
@@ -258,7 +195,7 @@ func (s *AuctionService) GetAuctionResult(LotID int) (model.AuctionResult, error
 	if err != nil {
 		return model.AuctionResult{}, fmt.Errorf("查询拍卖品失败：%v", err)
 	}
-	if lot.Deadline.After(time.Now()) && lot.Valid {
+	if lot.Deadline.After(time.Now()) {
 		return model.AuctionResult{}, fmt.Errorf("拍卖品未截止，不能查询结果")
 	}
 	err = s.db.Where("lot_id = ?", LotID).First(&auctionResult).Error

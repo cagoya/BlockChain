@@ -142,13 +142,10 @@ func main() {
 	auction := apiGroup.Group("/auction", jwtMiddleware.Auth())
 	{
 		auction.POST("/create", auctionHandler.CreateLot)
-		auction.PUT("/update", auctionHandler.UpdateLotByID)
-		auction.POST("/cancel", auctionHandler.CancelLot)
 		auction.GET("/list", auctionHandler.GetAllLots)
 		auction.GET("/seller", auctionHandler.GetLotBySellerID)
 		auction.POST("/bid", auctionHandler.SubmitBid)
 		auction.GET("/bid", auctionHandler.GetBidPrice)
-		auction.GET("/maxBid", auctionHandler.GetMaxBidPrice)
 		auction.GET("/result", auctionHandler.GetAuctionResult)
 		auction.POST("/finish", auctionHandler.FinishAuction)
 	}

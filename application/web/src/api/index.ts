@@ -163,6 +163,14 @@ const assetApi = {
   },
 
   /**
+   * 根据Id获取资产
+   * @param id 资产ID
+   */
+  getById: (id: string) => {
+    return instance.get(`/asset/getAssetByID?id=${id}`);
+  },
+
+  /**
    * 根据作者ID获取资产
    * @param authorId 作者ID
    */
@@ -297,6 +305,19 @@ const chatApi = {
   }
 };
 
+// 市场相关API
+const marketApi = {
+  /**
+   * 创建挂牌
+   * @param listingData 挂牌数据 {assetId, title, price, deadline}
+   */
+  createListing: (listingData: any) => {
+    return instance.post('/market/listing', listingData);
+  }
+
+  // 待补充
+};
+
 // 拍卖相关API
 const auctionApi = {
   /**
@@ -305,22 +326,6 @@ const auctionApi = {
    */
   create: (auctionData: any) => {
     return instance.post('/auction/create', auctionData);
-  },
-
-  /**
-   * 更新拍卖品
-   * @param auctionData 拍卖品数据 {assetId, title, reservePrice}
-   */
-  update: (auctionData: any) => {
-    return instance.put('/auction/update', auctionData);
-  },
-  
-  /**
-   * 取消拍卖品
-   * @param assetId 资产ID
-   */
-  cancel: (assetId: string) => {
-    return instance.post(`/auction/cancel?assetID=${assetId}`);
   },
   
   /**
@@ -354,14 +359,6 @@ const auctionApi = {
   },
 
   /**
-   * 获取最高出价
-   * @param lotId 拍卖品ID
-   */
-  getMaxBid: (lotId: number) => {
-    return instance.get(`/auction/maxBid?lotID=${lotId}`);
-  },
-
-  /**
    * 获取拍卖结果
    * @param lotId 拍卖品ID
    */
@@ -371,7 +368,7 @@ const auctionApi = {
 };
 
 // 导出所有API模块
-export { accountApi, assetApi, walletApi, chatApi, auctionApi };
+export { accountApi, assetApi, walletApi, chatApi, auctionApi, marketApi };
 
 // 默认导出包含所有API的对象
 export default {
