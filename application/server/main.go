@@ -18,6 +18,12 @@ func main() {
 		log.Fatalf("初始化配置失败：%v", err)
 	}
 
+	// 初始化日志系统
+	if err := middleware.InitLogger(); err != nil {
+		log.Fatalf("初始化日志系统失败：%v", err)
+	}
+	defer middleware.SyncLogger()
+
 	// 初始化 Fabric 客户端
 	if err := fabric.InitFabric(); err != nil {
 		log.Fatalf("初始化Fabric客户端失败：%v", err)
@@ -31,6 +37,9 @@ func main() {
 	// 创建 Gin 路由
 	//gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+
+	// 添加日志中间件
+	r.Use(middleware.ZapLogger())
 
 	// 添加CORS中间件
 	r.Use(middleware.CORSMiddleware())

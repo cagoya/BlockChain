@@ -30,6 +30,7 @@ declare module 'vue' {
     ARow: typeof import('ant-design-vue/es')['Row']
     ASelect: typeof import('ant-design-vue/es')['Select']
     ASelectOption: typeof import('ant-design-vue/es')['SelectOption']
+    ASpin: typeof import('ant-design-vue/es')['Spin']
     AssetCard: typeof import('./components/AssetCard.vue')['default']
     AssetNav: typeof import('./components/AssetNav.vue')['default']
     AssetStatusDialog: typeof import('./components/AssetStatusDialog.vue')['default']
