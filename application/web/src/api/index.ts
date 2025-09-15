@@ -338,7 +338,8 @@ const marketApi = {
     instance.post(`/market/offer/${offerId}/cancel`),
 
   // 我的出价
-  listMyOffers: (params?: any) => instance.get('/market/offers/mine', { params })
+  listMyOffers: (params?: any) => instance.get('/market/offers/mine', { params }),
+  buyNow: (data: { listingId: number | string }) => instance.post('/market/buyNow', data)
 };
 
 // 拍卖相关API

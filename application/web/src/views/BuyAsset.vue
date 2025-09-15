@@ -43,7 +43,7 @@
             :alt="it.asset?.name || it.title || 'asset'"
           />
           <div v-else class="cover-placeholder">
-            <a-icon type="picture" />
+            <PictureOutlined style="font-size:16px;margin-right:6px" />
             无图片
           </div>
 
@@ -156,7 +156,7 @@ import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import MarketNav from '../components/MarketNav.vue'
 import { marketApi, assetApi, getImageURL,accountApi,walletApi  } from '../api'
-
+import { PictureOutlined } from '@ant-design/icons-vue'
 interface Asset {
   id: string
   name: string
@@ -280,20 +280,20 @@ async function doPurchase() {
   if (confirm.value.id == null) return
   buying.value = true
   try {
-    const r = await (marketApi as any).createOffer({
-      listingId: confirm.value.id,
-      offerPrice: confirm.value.price
-    })
+    const r = await marketApi.buyNow({ listingId: Number(confirm.value.id) })
+    // 打印所有关键信息，便于定位
+    console.error('buyNow resp:', r.status, r.data)
+
     if (r.data?.code !== 200) {
       message.error(r.data?.message || '购买失败')
       return
     }
-    message.success('已提交购买/出价')
+    message.success('购买成功')
     confirm.value.open = false
-    // 成功后刷新一下列表
-    await fetchListings()
-  } catch (e) {
-    message.error('购买失败')
+    await Promise.all([refreshBalance(), fetchListings()])
+  }  catch (err: any) {
+  console.error('buyNow error:', err)
+  message.error(err?.message || '购买失败')
   } finally {
     buying.value = false
   }

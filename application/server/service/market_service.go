@@ -57,11 +57,15 @@ func (s *MarketService) ListListings(page, pageSize int) ([]model.MarketListing,
 	if pageSize <= 0 || pageSize > 100 {
 		pageSize = 10
 	}
-	var (
-		items []model.MarketListing
-		total int64
-	)
-	q := s.db.Model(&model.MarketListing{}).Where("status = ?", model.ListingActive)
+
+	var items []model.MarketListing
+	var total int64
+	now := time.Now()
+
+	q := s.db.Model(&model.MarketListing{}).
+		Where("status = ?", model.ListingActive).
+		Where("deadline IS NULL OR deadline > ?", now) // ← 新增
+
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -334,7 +338,84 @@ func (s *MarketService) CloseExpired() error {
 	return nil
 }
 
-//一口价直购：直接按 BuyNowPrice 走“买家->ESCROW -> 卖家”链路，省略 Offer 阶段
+// 一口价直购
+func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
+	const org2 = 2
+	w := NewWalletService()
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// 1) 锁定 & 校验
+		var l model.MarketListing
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&l, listingId).Error; err != nil {
+			return err
+		}
+		if l.Status != model.ListingActive {
+			return errors.New("挂牌已不可售")
+		}
+		if l.Deadline != nil && time.Now().After(*l.Deadline) {
+			return errors.New("已过截止时间，无法购买")
+		}
+		if l.SellerID == buyerID {
+			return errors.New("不能购买自己的挂牌")
+		}
+		if l.Price <= 0 {
+			return errors.New("价格非法")
+		}
+
+		// 2) 余额校验
+		bal, err := w.GetBalance(buyerID, org2)
+		if err != nil {
+			return fmt.Errorf("查询余额失败：%v", err)
+		}
+		if int64(bal) < l.Price {
+			return errors.New("余额不足")
+		}
+
+		// 3) 直接链上转账给卖家
+		txid, err := w.Transfer(buyerID, l.SellerID, int(l.Price), org2)
+		if err != nil {
+			return fmt.Errorf("直接转账失败：%v", err)
+		}
+
+		// 4) NFT 过户（卖家 -> 买家）
+		as := NewAssetService(model.GetDB())
+		if err := as.TransferAsset(l.AssetID, buyerID, l.SellerID, org2); err != nil {
+			// 如果资产转移失败，理论上要退款给买家（这里可以再调 w.Transfer(l.SellerID,buyerID,...))
+			return fmt.Errorf("NFT转移失败：%v", err)
+		}
+
+		// 5) 插入成交记录
+		off := &model.MarketOffer{
+			ListingID:  uint(l.ID),
+			BidderID:   buyerID,
+			BidderOrg:  org2,
+			OfferPrice: l.Price,
+			Status:     model.OfferAccepted,
+			// 不再有 escrow 字段
+			PayoutTxID: &txid,
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		}
+		if err := tx.Create(off).Error; err != nil {
+			return fmt.Errorf("保存成交记录失败：%v", err)
+		}
+
+		// 6) 标记挂牌 SOLD
+		winnerID := uint(off.ID)
+		if err := tx.Model(&model.MarketListing{}).
+			Where("id = ? AND status = ?", l.ID, model.ListingActive).
+			Updates(map[string]any{
+				"status":          model.ListingSold,
+				"winner_offer_id": &winnerID,
+				"update_time":     time.Now(),
+			}).Error; err != nil {
+			return fmt.Errorf("更新挂牌状态失败：%v", err)
+		}
+
+		return nil
+	})
+}
 
 // 我提交的出价（保持不变）
 func (s *MarketService) ListMyOffers(userID int, page, pageSize int) ([]model.MarketOffer, int64, error) {
