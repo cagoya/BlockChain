@@ -3,7 +3,8 @@ import axios from 'axios';
 // 本地开发可以选择 localhost:8888/api
 // 如果需要多机调试，将 localhost 改为你的 ip 地址
 // 这样在局域网内可以访问
-export const backendURL = 'http://10.162.199.212:8888/api';
+//export const backendURL = 'http://10.162.199.212:8888/api';
+export const backendURL = 'http://localhost:8888/api';
 
 // 获取图片的完整 URL
 export const getImageURL = (imageName: string) => {
@@ -313,9 +314,32 @@ const marketApi = {
    */
   createListing: (listingData: any) => {
     return instance.post('/market/listing', listingData);
-  }
+  },
+  // // 获取挂牌列表
+  // list: (params?: any) => instance.get('/market/listings', { params }),
+  /**
+   * 查询在售挂牌
+   * 后端路由：GET /market/listings
+   * @param params { page?: number; pageSize?: number }
+   */
+  list: (params?: { page?: number; pageSize?: number }) => {
+    return instance.get('/market/listings', { params });
+  },
+  // 提交出价
+  createOffer: (offerData: { listingId: number | string; offerPrice: number }) =>
+    instance.post('/market/offer', offerData),
 
-  // 待补充
+  // 卖家接受出价
+  acceptOffer: (offerId: number | string) =>
+    instance.post(`/market/offer/${offerId}/accept`),
+
+  // 撤回出价
+  cancelOffer: (offerId: number | string) =>
+    instance.post(`/market/offer/${offerId}/cancel`),
+
+  // 我的出价
+  listMyOffers: (params?: any) => instance.get('/market/offers/mine', { params }),
+  buyNow: (data: { listingId: number | string }) => instance.post('/market/buyNow', data)
 };
 
 // 拍卖相关API

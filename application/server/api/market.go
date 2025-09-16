@@ -181,11 +181,31 @@ func (h *MarketHandler) CancelOffer(c *gin.Context) {
 }
 
 // 一口价直购 BuyNow：如果 listing.BuyNowPrice 不为空
-type buyNowReq struct {
+// 一口价直购 BuyNow：买家点击立即购买就成交
+type BuyNowReq struct {
 	ListingID uint `json:"listingId" binding:"required"`
 }
 
 func (h *MarketHandler) BuyNow(c *gin.Context) {
-	// 实现思路：对 BuyNowPrice 生成一条“合成的” PENDING 出价（先 WithHold），
-	// 然后直接走 AcceptOffer 流程；为保证原子性可在 service 里做一个 BuyNow()
+	var req BuyNowReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.BadRequest(c, "参数错误")
+		return
+	}
+	uidVal, ok := c.Get("userID")
+	if !ok {
+		utils.ServerError(c, "无法获取用户")
+		return
+	}
+	userID, ok := uidVal.(int)
+	if !ok {
+		utils.ServerError(c, "用户ID类型错误")
+		return
+	}
+
+	if err := h.svc.BuyNow(userID, req.ListingID); err != nil {
+		utils.ServerError(c, "购买失败："+err.Error())
+		return
+	}
+	utils.SuccessWithMessage(c, "购买成功", nil)
 }

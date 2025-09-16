@@ -60,6 +60,11 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/market/buy',
+      component: () => import('../views/BuyAsset.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/market/auction',
       component: () => import('../views/Auction.vue'),
       meta: { requiresAuth: true },
