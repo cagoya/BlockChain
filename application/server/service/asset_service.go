@@ -5,8 +5,9 @@ import (
 	"application/pkg/fabric"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
@@ -120,16 +121,24 @@ func (s *AssetService) TransferAsset(id string, newOwnerId int, userID int, org 
 // 2: 拍卖中
 func (s *AssetService) GetAssetStatus(id string) (int, error) {
 	// 查询是否有对应的 listing 是 OPEN 状态
-	listing := model.MarketListing{}
-	err := s.db.Where("asset_id = ? and status = ?", id, model.ListingActive).First(&listing).Error
-	if err == nil {
+	now := time.Now()
+
+	// 普通出售：需要同时满足 OPEN 且 (deadline IS NULL 或 deadline > now)
+	var listing model.MarketListing
+	if err := s.db.
+		Where("asset_id = ? AND status = ? AND (deadline IS NULL OR deadline > ?)",
+			id, model.ListingActive, now).
+		First(&listing).Error; err == nil {
 		return 1, nil
 	}
-	// 查询是否有对应的 lot 是在拍卖中
-	lot := model.Lot{}
-	err = s.db.Where("asset_id = ? and deadline > ?", id, time.Now()).First(&lot).Error
-	if err == nil {
+
+	// 拍卖
+	var lot model.Lot
+	if err := s.db.
+		Where("asset_id = ? AND deadline > ?", id, now).
+		First(&lot).Error; err == nil {
 		return 2, nil
 	}
+
 	return 0, nil
 }

@@ -17,10 +17,17 @@ type MarketService struct {
 func NewMarketService() *MarketService {
 	return &MarketService{db: model.GetDB()}
 }
-
-// 创建挂牌
+func isPast(deadline *time.Time, now time.Time) bool {
+	if deadline == nil {
+		return false
+	}
+	// 统一到 UTC 再比较
+	dl := deadline.UTC()
+	n := now.UTC()
+	// 裕量 2 秒（可根据需要调整或去掉）
+	return dl.Before(n.Add(-2 * time.Second))
+}
 func (s *MarketService) CreateListing(userID int, assetId, title string, price int64, deadline *time.Time) (*model.MarketListing, error) {
-	// 所有人都在 org2
 	const org2 = 2
 
 	// 1) 链上校验：只有 NFT 当前 Owner 才能挂牌
@@ -33,18 +40,49 @@ func (s *MarketService) CreateListing(userID int, assetId, title string, price i
 		return nil, errors.New("只有NFT持有人才能挂牌")
 	}
 
-	// 2) 落库（显式记录 SellerOrg = 2）
+	// 2) 业务校验
+	if price <= 0 {
+		return nil, errors.New("价格必须大于0")
+	}
+	// 截止时间不能早于当前时间
+	if deadline != nil && deadline.UTC().Before(time.Now().UTC()) {
+		return nil, errors.New("截止时间不能早于当前时间")
+	}
+
+	// 3) 清理已过期挂牌并检查重复 OPEN（可选行级锁，避免并发）
+	if err := s.db.Model(&model.MarketListing{}).
+		Where("asset_id = ? AND status = ? AND deadline IS NOT NULL AND deadline < ?",
+			assetId, model.ListingActive, time.Now()).
+		Updates(map[string]any{
+			"status":      model.ListingClosed,
+			"update_time": time.Now(),
+		}).Error; err != nil {
+		return nil, fmt.Errorf("清理过期挂牌失败：%v", err)
+	}
+
+	var cnt int64
+	if err := s.db.
+		Model(&model.MarketListing{}).
+		Where("asset_id = ? AND status = ?", assetId, model.ListingActive).
+		Count(&cnt).Error; err != nil {
+		return nil, fmt.Errorf("检查挂牌状态失败：%v", err)
+	}
+	if cnt > 0 {
+		return nil, errors.New("该资产已有进行中的挂牌")
+	}
+
+	// 4) 落库（显式记录 SellerOrg = 2）
 	l := &model.MarketListing{
 		AssetID:   assetId,
 		Title:     title,
 		Price:     price,
 		SellerID:  userID,
-		SellerOrg: 2,
+		SellerOrg: org2,
 		Deadline:  deadline,
 		Status:    model.ListingActive,
 	}
 	if err := s.db.Create(l).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("保存挂牌失败：%v", err)
 	}
 	return l, nil
 }
@@ -338,7 +376,15 @@ func (s *MarketService) CloseExpired() error {
 	return nil
 }
 
-// 一口价直购
+// 仅把当前 OPEN 的挂牌改为 CLOSED
+func closeListingTx(tx *gorm.DB, l *model.MarketListing) error {
+	return tx.Model(&model.MarketListing{}).
+		Where("id = ? AND status = ?", l.ID, model.ListingActive).
+		Updates(map[string]any{
+			"status":      model.ListingClosed,
+			"update_time": time.Now(),
+		}).Error
+}
 func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
 	const org2 = 2
 	w := NewWalletService()
@@ -354,7 +400,11 @@ func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
 			return errors.New("挂牌已不可售")
 		}
 		if l.Deadline != nil && time.Now().After(*l.Deadline) {
-			return errors.New("已过截止时间，无法购买")
+			// 关键：到期时把它关掉
+			if err := closeListingTx(tx, &l); err != nil {
+				return fmt.Errorf("自动下架失败：%v", err)
+			}
+			return errors.New("已过截止时间，已自动下架")
 		}
 		if l.SellerID == buyerID {
 			return errors.New("不能购买自己的挂牌")
@@ -372,27 +422,26 @@ func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
 			return errors.New("余额不足")
 		}
 
-		// 3) 直接链上转账给卖家
+		// 3) 直接转卖家
 		txid, err := w.Transfer(buyerID, l.SellerID, int(l.Price), org2)
 		if err != nil {
-			return fmt.Errorf("直接转账失败：%v", err)
+			return fmt.Errorf("转账失败：%v", err)
 		}
 
-		// 4) NFT 过户（卖家 -> 买家）
-		as := NewAssetService(model.GetDB())
+		// 4) NFT 过户
+		as := NewAssetService(model.GetDB()) // 你原来的
 		if err := as.TransferAsset(l.AssetID, buyerID, l.SellerID, org2); err != nil {
-			// 如果资产转移失败，理论上要退款给买家（这里可以再调 w.Transfer(l.SellerID,buyerID,...))
+			// 可选：失败则考虑退款（按你的实现）
 			return fmt.Errorf("NFT转移失败：%v", err)
 		}
 
-		// 5) 插入成交记录
+		// 5) 成交记录
 		off := &model.MarketOffer{
 			ListingID:  uint(l.ID),
 			BidderID:   buyerID,
 			BidderOrg:  org2,
 			OfferPrice: l.Price,
 			Status:     model.OfferAccepted,
-			// 不再有 escrow 字段
 			PayoutTxID: &txid,
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
@@ -401,7 +450,7 @@ func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
 			return fmt.Errorf("保存成交记录失败：%v", err)
 		}
 
-		// 6) 标记挂牌 SOLD
+		// 6) 标记 SOLD
 		winnerID := uint(off.ID)
 		if err := tx.Model(&model.MarketListing{}).
 			Where("id = ? AND status = ?", l.ID, model.ListingActive).
@@ -413,6 +462,7 @@ func (s *MarketService) BuyNow(buyerID int, listingId uint) error {
 			return fmt.Errorf("更新挂牌状态失败：%v", err)
 		}
 
+		// 注意：不需要也不会改任何 Asset 字段
 		return nil
 	})
 }

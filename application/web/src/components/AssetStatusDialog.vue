@@ -55,6 +55,7 @@
                 v-model:value="listingForm.deadline" 
                 show-time 
                 format="YYYY-MM-DD HH:mm"
+                :disabledDate="disablePast"
                 placeholder="选择截止时间"
                 style="width: 100%"
               />
@@ -171,9 +172,24 @@ const auctionForm = ref({
 const listingRules = {
   title: [{ required: true, message: '请输入出售标题', trigger: 'blur' }],
   price: [{ required: true, message: '请输入出售价格', trigger: 'blur' }],
-  deadline: [{ required: true, message: '请选择截止时间', trigger: 'change' }]
+  deadline: [
+    { required: true, message: '请选择截止时间', trigger: 'change' },
+    {
+      // 自定义校验：截止时间必须晚于当前时间
+      validator: (_: any, value: any) => {
+        if (!value) return Promise.resolve();
+        if (dayjs(value).isBefore(dayjs())) {
+          return Promise.reject('截止时间必须晚于当前时间');
+        }
+        return Promise.resolve();
+      },
+      trigger: 'change',
+    },
+  ]
 } as any;
-
+const disablePast = (current: any) => {
+  return current && current < dayjs().startOf('minute');
+};
 const auctionRules = {
   title: [{ required: true, message: '请输入拍卖标题', trigger: 'blur' }],
   reservePrice: [{ required: true, message: '请输入起拍价', trigger: 'blur' }],
