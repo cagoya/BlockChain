@@ -315,8 +315,6 @@ const marketApi = {
   createListing: (listingData: any) => {
     return instance.post('/market/listing', listingData);
   },
-  // // 获取挂牌列表
-  // list: (params?: any) => instance.get('/market/listings', { params }),
   /**
    * 查询在售挂牌
    * 后端路由：GET /market/listings
