@@ -136,6 +136,7 @@ func main() {
 		market.POST("/offer/:id/accept", marketHandler.AcceptOffer)
 		market.POST("/offer/:id/cancel", marketHandler.CancelOffer)
 		market.GET("/offers/mine", marketHandler.ListMyOffers)
+		market.POST("/buyNow", marketHandler.BuyNow)
 	}
 
 	// 拍卖相关接口
