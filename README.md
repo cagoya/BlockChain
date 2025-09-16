@@ -1,15 +1,9 @@
 # NFT 交易系统
 
 <div align=center>
-   <img src="https://img.shields.io/badge/golang-1.20-blue"/>
    <img src="https://img.shields.io/badge/gin-1.10-blue"/>
-   <img src="https://img.shields.io/badge/gorm-1.30.2-blue"/>
    <img src="https://img.shields.io/badge/vue-3.5.13-green"/>
-   <img src="https://img.shields.io/badge/ant design-3.2.20-green"/>
-</div>
-<div align=center>
    <img src="https://img.shields.io/badge/hyperledger fabric-2.5.10-yellow"/>
-   <img src="https://img.shields.io/badge/fabric-gateway-1.7.0-red"/>
 </div>
 
 

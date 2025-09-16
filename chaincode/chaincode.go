@@ -579,7 +579,7 @@ func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("查询 NFT 失败：%v", err)
 	}
 	// 确保转移请求是所有者发起的
-	if asset.AuthorId != userId {
+	if asset.OwnerId != userId {
 		return fmt.Errorf("只有 NFT 的所有者可以转移所有权")
 	}
 	if asset.OwnerId == newOwnerId {
