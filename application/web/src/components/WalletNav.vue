@@ -7,9 +7,6 @@
         <a-menu-item key="balance">
           余额与转账
         </a-menu-item>
-        <a-menu-item key="withhold">
-          预扣款记录
-        </a-menu-item>
         <a-menu-item key="assets">
           我的资产
         </a-menu-item>
