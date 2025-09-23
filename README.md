@@ -55,14 +55,7 @@
 git clone git@github.com:cagoya/BlockChain.git
 ```
 
-### 2. 设置脚本权限
-
-```bash
-cd fabric-realty
-find . -name "*.sh" -exec chmod +x {} \;
-```
-
-### 3. 启动区块链网络
+### 2. 启动区块链网络
 
 首先需要启动基础的区块链网络环境（注意是进入到 network 目录执行）：
 
@@ -72,7 +65,7 @@ cd network
 ./install.sh
 ```
 
-### 4. 启动后端服务
+### 3. 启动后端服务
 
 后端服务需要在本地编译运行，这样可以实时修改代码：
 
@@ -86,7 +79,7 @@ go run main.go
 
 后端服务默认运行在 8888 端口。
 
-### 5. 启动前端服务
+### 4. 启动前端服务
 
 前端服务同样需要在本地编译运行：
 
@@ -103,7 +96,7 @@ npm run dev
 
 前端开发服务器默认运行在 5173 端口。
 
-### 6. 访问前端服务
+### 5. 访问前端服务
 
 前端`application/web/api/index.tx`中可以设置后端的地址，本地开发设置成 localhost，如需局域网内访问可以设置成局域网 ip，前端访问 http://localhost:5173
 

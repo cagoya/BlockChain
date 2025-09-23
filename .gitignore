@@ -7,3 +7,6 @@
 
 # Logs
 application/server/logs/
+
+# 测试数据
+test_data/

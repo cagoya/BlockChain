@@ -61,7 +61,6 @@
                   v-for="org in organizations" 
                   :key="org.value" 
                   :value="org.value"
-                  :disabled="org.disabled"
                 >
                   {{ org.label }}
                 </a-radio>
@@ -174,9 +173,9 @@ const orgWarning = ref('');
 
 // 组织选项配置
 const organizations = [
-  { label: '平台运营方', value: 1, disabled: true },
-  { label: 'NFT创作者', value: 2, disabled: false },
-  { label: '金融机构', value: 3, disabled: true }
+  { label: '平台运营方', value: 1 },
+  { label: 'NFT创作者', value: 2 },
+  { label: '金融机构', value: 3 }
 ];
 
 // 邮箱格式验证

@@ -3,8 +3,7 @@ import axios from 'axios';
 // 本地开发可以选择 localhost:8888/api
 // 如果需要多机调试，将 localhost 改为你的 ip 地址
 // 这样在局域网内可以访问
-//export const backendURL = 'http://10.162.199.212:8888/api';
-export const backendURL = 'http://localhost:8888/api';
+export const backendURL = 'localhost:8888/api';
 
 // 获取图片的完整 URL
 export const getImageURL = (imageName: string) => {
